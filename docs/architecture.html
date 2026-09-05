@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture Diagrams (HLD & LLD)</title>
+  <link rel="stylesheet" href="architecture.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- Switcher -->
+    <div class="diagram-nav">
+      <button class="nav-btn active" onclick="showDiagram('hld')">High-Level Design (HLD)</button>
+      <button class="nav-btn" onclick="showDiagram('lld')">Low-Level Design (LLD) — User Query Tracing</button>
+    </div>
+
+    <!-- HLD Diagram -->
+    <div id="diagram-hld" class="diagram-panel active">
+      <div class="hld-canvas">
+        <!-- Tier 1: Client -->
+        <div class="hld-box">
+          <div class="box-header">
+            <span class="box-title">🌐 Client Tier — Next.js 16</span>
+            <span class="box-badge">PORT 3000</span>
+          </div>
+          <div class="box-desc">
+            Document Dropzone • Realtime Screen-Blur Loader Shield • Inline Memory PDF Viewer • 16-Parameter CSV Table
+          </div>
+        </div>
+
+        <div class="hld-arrow-row">
+          <span>⬇️ HTTP / REST (Multipart Upload & JSON Responses) ⬇️</span>
+        </div>
+
+        <!-- Tier 2: API Gateway -->
+        <div class="hld-box">
+          <div class="box-header">
+            <span class="box-title">⚡ Ingress Gateway — FastAPI REST Engine</span>
+            <span class="box-badge">PORT 8000</span>
+          </div>
+          <div class="box-desc">
+            Stateless HTTP Router • In-Memory SHA-256 Hashing • DB Memory Binary Streaming • Consolidated CSV Exporter
+          </div>
+        </div>
+
+        <div class="hld-arrow-row">
+          <span>⬇️ Cache Lookup & Relational Persistence ⬇️</span>
+        </div>
+
+        <!-- Tier 3: Redis & Postgres -->
+        <div class="hld-split-row">
+          <div class="hld-box">
+            <div class="box-header">
+              <span class="box-title">⚡ Redis 7 In-Memory Cache</span>
+              <span class="box-badge">PORT 6379</span>
+            </div>
+            <div class="box-desc">
+              Sub-5ms SHA-256 Deduplication • Instant Hit on Repeated Bills • Zero Ingress Duplicate Overhead
+            </div>
+          </div>
+
+          <div class="hld-box">
+            <div class="box-header">
+              <span class="box-title">🗄️ PostgreSQL 17 BYTEA Storage</span>
+              <span class="box-badge">PORT 5432</span>
+            </div>
+            <div class="box-desc">
+              Zero-Disk Storage: Raw PDF/image bytes stored directly in PostgreSQL database blobs • SQLAlchemy 2.0 ORM
+            </div>
+          </div>
+        </div>
+
+        <div class="hld-arrow-row">
+          <span>⬇️ Asynchronous Job Dispatch ⬇️</span>
+        </div>
+
+        <!-- Tier 4: Queue -->
+        <div class="hld-box">
+          <div class="box-header">
+            <span class="box-title">📬 Background Dispatcher — asyncio.Queue</span>
+            <span class="box-badge">NON-BLOCKING</span>
+          </div>
+          <div class="box-desc">
+            Immediate HTTP 202 Accepted Response to Browser • Decouples Heavy Multi-Page OCR from Web Event Loop
+          </div>
+        </div>
+
+        <div class="hld-arrow-row">
+          <span>⬇️ Neural Processing & Audit Pipeline ⬇️</span>
+        </div>
+
+        <!-- Tier 5: OCR & Verification -->
+        <div class="hld-split-row">
+          <div class="hld-box">
+            <div class="box-header">
+              <span class="box-title">🔍 Poppler 200 DPI + Tesseract 5</span>
+              <span class="box-badge">OCR ENGINE</span>
+            </div>
+            <div class="box-desc">
+              Parallel Multi-Threaded PDF Rasterization • 8-Bit Grayscale • Single-Pass Neural LSTM Engine (~2.2s)
+            </div>
+          </div>
+
+          <div class="hld-box">
+            <div class="box-header">
+              <span class="box-title">🛡️ Guardrails & Tariff Verification</span>
+              <span class="box-badge">MATH AUDIT</span>
+            </div>
+            <div class="box-desc">
+              Non-Bill Rejection Guardrail (Clean NULLs) • Multi-DISCOM Regex Heuristics • Meter Delta & PF Invariant Audits
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LLD Diagram: User Query Tracing -->
+    <div id="diagram-lld" class="diagram-panel">
+      <div class="lld-canvas">
+        <!-- Step 1 -->
+        <div class="query-step">
+          <div class="step-num-col">
+            <span class="step-badge">Step 1</span>
+            <span class="step-time">User Action</span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">User Drops Bill into Dropzone</div>
+            <div class="step-text">Next.js triggers loading shield, locks screen, and creates multipart <code>FormData</code>.</div>
+            <span class="step-code">frontend/app/page.tsx ➔ handleFileUpload()</span>
+          </div>
+        </div>
+
+        <div class="query-arrow">⬇️</div>
+
+        <!-- Step 2 -->
+        <div class="query-step">
+          <div class="step-num-col">
+            <span class="step-badge">Step 2</span>
+            <span class="step-time">&lt; 1ms</span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">FastAPI Receives Stream & Hashes SHA-256</div>
+            <div class="step-text">Reads raw byte stream in memory and generates SHA-256 fingerprint without touching disk.</div>
+            <span class="step-code">backend/app/api/v1/endpoints/bills.py ➔ upload_bill()</span>
+          </div>
+        </div>
+
+        <div class="query-arrow">⬇️</div>
+
+        <!-- Step 3: Cache Branch -->
+        <div class="query-step">
+          <div class="step-num-col">
+            <span class="step-badge">Step 3</span>
+            <span class="step-time">&lt; 5ms</span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">Redis Deduplication Check: bill:sha256:{hash}</div>
+            <div class="step-text">Checks if document has already been audited in Redis cache.</div>
+            <span class="step-code">backend/app/services/cache/redis_client.py ➔ get_cached_bill()</span>
+          </div>
+        </div>
+
+        <!-- Branches -->
+        <div class="branch-wrap">
+          <div class="branch-box hit">
+            <strong>🟢 Cache Hit (&lt; 5ms):</strong><br />
+            Returns verified JSON immediately. UI displays notice: <em>"Document already parsed and verified"</em> and opens bill.
+          </div>
+          <div class="branch-box miss">
+            <strong>🟣 Cache Miss (&lt; 10ms):</strong><br />
+            Writes <code>Bill(file_data=bytes, status="PENDING")</code> to PostgreSQL 17 BYTEA blob. Continues to Step 4.
+          </div>
+        </div>
+
+        <div class="query-arrow">⬇️</div>
+
+        <!-- Step 4 -->
+        <div class="query-step">
+          <div class="step-num-col">
+            <span class="step-badge">Step 4</span>
+            <span class="step-time">&lt; 1ms</span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">Enqueue Bill ID & Return HTTP 202 Accepted</div>
+            <div class="step-text">Pushes <code>bill_id</code> to in-memory <code>asyncio.Queue</code>. Returns HTTP 202 so the browser never times out.</div>
+            <span class="step-code">backend/app/workers/queue.py ➔ task_queue.enqueue(bill_id)</span>
+          </div>
+        </div>
+
+        <div class="query-arrow">⬇️</div>
+
+        <!-- Step 5 -->
+        <div class="query-step">
+          <div class="step-num-col">
+            <span class="step-badge">Step 5</span>
+            <span class="step-time">~2.2s</span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">Poppler 200 DPI Rasterization & Tesseract 5 Neural OCR</div>
+            <div class="step-text">Worker reads BYTEA from database. Poppler renders 200 DPI grayscale images; Tesseract extracts text tokens in one pass.</div>
+            <span class="step-code">backend/app/services/ocr/engine.py ➔ DocumentOCREngine.extract()</span>
+          </div>
+        </div>
+
+        <div class="query-arrow">⬇️</div>
+
+        <!-- Step 6 -->
+        <div class="query-step">
+          <div class="step-num-col">
+            <span class="step-badge">Step 6</span>
+            <span class="step-time">&lt; 5ms</span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">Non-Bill Guardrail Classifier</div>
+            <div class="step-text">Detects technical register maps (e.g. EM6400). Rejects with <code>REJECTED_NON_BILL</code> and sets clean <code>null</code> values.</div>
+            <span class="step-code">backend/app/services/ocr/universal_extractor.py ➔ validate_is_electricity_bill()</span>
+          </div>
+        </div>
+
+        <div class="query-arrow">⬇️</div>
+
+        <!-- Step 7 -->
+        <div class="query-step">
+          <div class="step-num-col">
+            <span class="step-badge">Step 7</span>
+            <span class="step-time">&lt; 15ms</span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">Multi-DISCOM Regex Pattern Extraction</div>
+            <div class="step-text">Extracts APDCL TOD registers (Solar, Peak, Normal), JVVNL Net Payable Amount preceding "Rupees Only", and GESCOM reference numbers.</div>
+            <span class="step-code">backend/app/services/ocr/universal_extractor.py ➔ extract_heuristic_fields()</span>
+          </div>
+        </div>
+
+        <div class="query-arrow">⬇️</div>
+
+        <!-- Step 8 -->
+        <div class="query-step">
+          <div class="step-num-col">
+            <span class="step-badge">Step 8</span>
+            <span class="step-time">&lt; 5ms</span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">Deterministic Tariff Mathematical Audit</div>
+            <div class="step-text">Verifies meter delta consistency <code>((Curr - Prev) * MF = Units)</code>, validates Power Factor bounds (0.0 to 1.0), and marks <code>VERIFIED</code>.</div>
+            <span class="step-code">backend/app/services/verification/engine.py ➔ MathVerificationEngine.verify()</span>
+          </div>
+        </div>
+
+        <div class="query-arrow">⬇️</div>
+
+        <!-- Step 9 -->
+        <div class="query-step">
+          <div class="step-num-col">
+            <span class="step-badge">Step 9</span>
+            <span class="step-time">&lt; 15ms</span>
+          </div>
+          <div class="step-body">
+            <div class="step-head">Realtime UI Render, In-Memory PDF View & CSV Export</div>
+            <div class="step-text">Frontend unblurs, renders audited values, streams PDF binary from DB memory, and compiles the consolidated CSV export.</div>
+            <span class="step-code">frontend/app/page.tsx + backend/app/api/v1/endpoints/bills.py ➔ export_all_bills_csv()</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showDiagram(type) {
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.diagram-panel').forEach(panel => panel.classList.remove('active'));
+
+      const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick').includes(type));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const target = document.getElementById('diagram-' + type);
+      if (target) target.classList.add('active');
+    }
+  </script>
+</body>
+</html>

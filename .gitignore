@@ -74,11 +74,10 @@ backend/storage_artifacts/
 *.swo
 *~
 
-# Video Walkthrough Scripts & Presentation Reference Docs (Private / Local only)
+# Video Walkthrough Scripts & Personal Reference Notes (Private / Local only)
 docs/*VIDEO_WALKTHROUGH*
 docs/*video_walkthrough*
 docs/*_SCRIPT*
 docs/*_script*
-docs/architecture.html
-docs/architecture.css
 docs/references/
+*.script.md
