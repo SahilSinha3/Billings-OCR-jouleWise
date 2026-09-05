@@ -1,89 +1,156 @@
 # JouleWise System Architecture & Design Document (HLD / LLD)
 
-This document details the high-level architecture, low-level component designs, mathematical verification formulation, and case studies for the JouleWise utility bill extraction platform.
+This document details the high-level architecture (HLD), low-level component design (LLD), database schema, mathematical verification equations, and codebase mapping for the JouleWise utility bill extraction and audit platform.
 
 ---
 
 ## 1. High-Level Design (HLD)
 
-### 1.1 Architectural Objectives
+### 1.1 Architectural Goals & Principles
 
-1. **Deterministic Extraction & Verification**:
-   Ensure utility bills are parsed with mathematically verifiable accuracy. OCR readings must reconcile with net charges, consumption multipliers, and power factor bounds.
-2. **Zero Local Disk Dependence**:
-   Store every document binary directly in PostgreSQL (`BYTEA`) so that application containers remain completely stateless without mounting local shared disks or volume maps.
-3. **Resilient Offline Extraction**:
-   Ensure core extraction and math verification operate independently of third-party cloud APIs or LLMs. If Gemini or Ollama is unavailable, the pipeline completes using pure Tesseract OCR and deterministic heuristics.
-4. **Sub-5ms Cache Resolution**:
-   Prevent redundant OCR processing on duplicate or consecutive requests using SHA-256 keyed Redis caching.
-
-### 1.2 System Topology
-
-```mermaid
-flowchart TD
-    subgraph Client ["Client Layer"]
-        A[Next.js 16 Client] -->|Multipart Upload| B(FastAPI Gateway)
-        A -->|Stream Document| G(File Streaming Endpoint)
-    end
-
-    subgraph Ingress ["API Gateway & Ingress"]
-        B --> C{SHA-256 Cache Check}
-    end
-
-    subgraph Caching ["Redis Cache (Port 6379)"]
-        C -->|Cache Hit| D[Return Cached JSON < 5ms]
-        K -->|Write Cache| L[(Redis Key: bill:sha256:hash)]
-    end
-
-    subgraph Pipeline ["Processing Pipeline"]
-        C -->|Cache Miss| E[(PostgreSQL 17 - BYTEA Blob)]
-        E --> F[Async Queue Worker]
-        F --> H[Poppler 200 DPI Rasterizer 4 Threads]
-        H --> I[Pure Tesseract Neural OCR OEM 1]
-        I --> J[Universal Bill Extractor parse_fast]
-        J --> K[Deterministic Math Audit Engine]
-        K --> E
-        K -.->|Async Background Task| M[Progressive LLM Summarizer]
-        M -.-> E
-    end
-
-    G -->|Stream Binary| E
-```
-
-### 1.3 Request Lifecycle & Staged Pipeline
-
-1. **Ingress & Hashing**:
-   - Client sends multipart file payload to `/api/v1/bills/upload` or `/api/v1/bills/bulk-upload`.
-   - The server computes the SHA-256 digest of the raw bytes.
-2. **Cache Resolution**:
-   - The worker checks Redis for key `bill:sha256:{hash}`.
-   - If present, the stored verified bill payload is returned immediately with HTTP 202 (`retrieved from cache`).
-3. **Database Blob Persistence**:
-   - If not in cache, a new `Bill` record is inserted with `file_data = contents` directly into PostgreSQL.
-   - The record status is set to `QUEUED`, and the generated UUID is placed on `asyncio.Queue`.
-4. **High-Speed Rasterization & Single-Pass Neural OCR (~2.2s)**:
-   - The worker reads `bill.file_data` from PostgreSQL.
-   - For PDF documents, Poppler (`pdf2image.convert_from_bytes`) renders pages at 200 DPI with 4 parallel worker threads and converts images to 8-bit grayscale.
-   - Tesseract OCR extracts token coordinates, confidence scores, and layout text in a single pass (`--oem 1`).
-5. **Document Classification Guardrail**:
-   - Before parsing, the text is evaluated against negative manual/datasheet signatures and positive electricity billing signals.
-   - Non-bill technical documents are rejected with `REJECTED_NON_BILL`.
-6. **Fast Heuristic Parsing & Mathematical Audit**:
-   - Multi-anchor regex heuristics extract Consumer Name, Account Number, Due Date, Active Energy Units, Net Amount Due, and Meter Registers in < 50ms.
-   - The mathematical audit engine verifies consumption multipliers, power factor sanity, and financial sums.
-   - The bill is committed with status `VERIFIED` and cached in Redis. The frontend unblurs immediately.
-7. **Decoupled Progressive AI Summarization**:
-   - An asynchronous background task invokes Gemini 2.5 Flash or local Ollama (Llama 3.2).
-   - If available, the plain-English summary is enriched in the background. If offline, a deterministic summary is constructed immediately without delaying the user.
-8. **CSV Exports**:
-   - `GET /api/v1/bills/export/csv` generates structured CSV reports for the entire bill collection.
-   - `GET /api/v1/bills/{id}/export/csv` generates detailed CSV audit reports with register breakdowns.
+1. **Sub-2.5s Deterministic Extraction**:
+   Extract all critical metrics (Consumer Name, Account ID, Bill Number, Issue Date, Due Date, Active Energy Units, Power Factor, and Net Amount Due) with deterministic accuracy without relying on slow external LLM inference.
+2. **Zero Local Disk Footprint (Enterprise Storage)**:
+   Store every uploaded bill directly in PostgreSQL 17 as binary data (`LargeBinary` / `BYTEA`). No document binaries, temporary slices, or cached PDFs touch the application host's local disk.
+3. **Sub-5ms Cache Resolution & Deduplication**:
+   Every document is fingerprinted using cryptographic SHA-256 upon arrival. If the document was already audited, the full verified payload is returned from Redis in under 5ms, and the UI immediately opens the existing record.
+4. **Document Guardrails & Rejection**:
+   Prevent non-utility documents (meter register maps, user manuals, datasheets) from polluting financial models by detecting negative signatures and classifying them as `REJECTED_NON_BILL` with clean `null` parameters.
+5. **Decoupled Progressive Summarization**:
+   Core OCR and mathematical audits complete immediately. Plain-English narrative summaries are synthesized asynchronously via Gemini 2.5 Flash or local Ollama (Llama 3.2), falling back to instant deterministic templates if offline.
 
 ---
 
-## 2. Low-Level Design (LLD)
+### 1.2 System Topology & Architecture Diagram
 
-### 2.1 Database Schema (PostgreSQL 17)
+```mermaid
+flowchart TD
+    subgraph Client ["Client Layer (Next.js 16)"]
+        UI[Monochrome Dashboard\npage.tsx]
+        Drop[Dropzone Ingestion\nsingle / bulk]
+        Viewer[PDF Streaming Viewer\nNative Embed]
+    end
+
+    subgraph Gateway ["API Gateway Layer (FastAPI)"]
+        Router[API Router\napi/v1/endpoints/bills.py]
+        Hasher[SHA-256 Digest Generator]
+    end
+
+    subgraph Cache ["In-Memory Caching (Redis 7)"]
+        RedisDB[(Redis Cache\nKey: bill:sha256:hash)]
+    end
+
+    subgraph Storage ["Persistent Storage (PostgreSQL 17)"]
+        PG[(PostgreSQL 17 DB\nbills: BYTEA Blobs\nmeter_readings\nbill_line_items)]
+    end
+
+    subgraph Worker ["Async Pipeline (asyncio.Queue)"]
+        Q[In-Memory Task Queue\napp/workers/queue.py]
+        Poppler[Poppler pdftoppm\n200 DPI Grayscale]
+        Tesseract[Tesseract OCR 5\nNeural LSTM OEM 1]
+        Guardrail{Non-Bill Guardrail\nvalidate_is_electricity_bill}
+        Parser[Universal Bill Extractor\nparse_fast]
+        AuditEngine[Math Audit Engine\nverify]
+        Summarizer[Progressive AI Summarizer\nGemini 2.5 / Ollama]
+    end
+
+    %% Flow connections
+    Drop -->|Multipart POST| Router
+    Router --> Hasher
+    Hasher -->|Lookup SHA-256| RedisDB
+    RedisDB -->|Cache Hit <5ms| Router
+    Hasher -->|Cache Miss| PG
+    PG -->|Enqueue UUID| Q
+    Q --> Poppler
+    Poppler --> Tesseract
+    Tesseract --> Guardrail
+    Guardrail -->|Rejected| PG
+    Guardrail -->|Valid Bill| Parser
+    Parser --> AuditEngine
+    AuditEngine -->|Persist Verified Data| PG
+    AuditEngine -->|Write Cache Payload| RedisDB
+    AuditEngine -.->|Async Background Task| Summarizer
+    Summarizer -.->|Enrich Summary| PG
+    Viewer -->|GET /bills/{id}/file| Router
+    Router -->|Stream BYTEA StreamResponse| PG
+```
+
+---
+
+### 1.3 End-to-End Processing Sequence
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / Client
+    participant FE as Next.js Dashboard
+    participant API as FastAPI Ingress
+    participant Cache as Redis (Port 6379)
+    participant DB as PostgreSQL 17
+    participant Worker as Async Queue Worker
+    participant OCR as Poppler + Tesseract
+    participant Audit as Math Verification Engine
+
+    User->>FE: Drop PDF/Image file
+    FE->>API: POST /api/v1/bills/upload (multipart)
+    API->>API: Calculate SHA-256 digest
+    API->>Cache: GET bill:sha256:{hash}
+    alt Cache Hit (<5ms)
+        Cache-->>API: Return cached bill JSON
+        API-->>FE: HTTP 200 (Already Processed)
+        FE->>FE: Show "Already Parsed" banner & open bill
+    else Cache Miss
+        API->>DB: INSERT into bills (status=QUEUED, file_data=BYTEA)
+        API->>Worker: Enqueue bill_id into asyncio.Queue
+        API-->>FE: HTTP 202 (Processing Started)
+        FE->>FE: Display 5-phase blurring state loader
+        Worker->>DB: SELECT file_data FROM bills WHERE id=bill_id
+        Worker->>OCR: Rasterize 200 DPI + Run Tesseract LSTM
+        OCR-->>Worker: OCR Text + Tokens + Bounding Boxes
+        Worker->>Worker: Check Non-Bill Guardrail
+        alt Non-Bill Detected
+            Worker->>DB: UPDATE bills SET status='REJECTED_NON_BILL', all fields=NULL
+        else Valid Electricity Bill
+            Worker->>Worker: UniversalBillExtractor.extract_heuristic_fields()
+            Worker->>Audit: MathVerificationEngine.verify()
+            Audit-->>Worker: Audit Report (is_math_verified, discrepancies)
+            Worker->>DB: UPDATE bills (status='VERIFIED', net_amount, units, pf, etc.)
+            Worker->>DB: INSERT meter_readings & bill_line_items
+            Worker->>Cache: SET bill:sha256:{hash} (JSON payload)
+        end
+        FE->>API: Polling GET /api/v1/bills (every 1.5s)
+        API-->>FE: Return updated bill record
+        FE->>FE: Unblur screen & render verified dashboard
+    end
+```
+
+---
+
+## 2. Codebase Map: Subsystems, Files & Functions
+
+This table maps every layer of the system to its exact file location and core functions:
+
+| System Layer | Subsystem / Feature | File Path | Core Function / Class | Responsibility |
+| :--- | :--- | :--- | :--- | :--- |
+| **Ingress** | API Routing & Endpoints | `backend/app/api/v1/endpoints/bills.py` | `upload_bill()`, `bulk_upload_bills()` | Validates multipart files, hashes SHA-256, checks cache, enqueues work. |
+| **Ingress** | Document Streaming | `backend/app/api/v1/endpoints/bills.py` | `get_bill_file()` | Streams document binary directly from PostgreSQL memory to client iframe. |
+| **Ingress** | CSV Export Engine | `backend/app/api/v1/endpoints/bills.py` | `export_all_bills_csv()`, `export_single_bill_csv()` | Formats audited parameters to CSV; handles clean empty cells for non-bills. |
+| **Storage** | Database ORM Models | `backend/app/models/bill.py` | `Bill`, `MeterReading`, `BillLineItem` | SQLAlchemy 2.0 models with nullable attributes and `BYTEA` storage. |
+| **Caching** | Redis Caching Service | `backend/app/services/cache/redis_client.py` | `get_cached_bill()`, `set_cached_bill()`, `clear_all()` | Sub-5ms key-value retrieval, deletion, and full cache invalidation. |
+| **Queue** | Background Worker | `backend/app/workers/queue.py` | `process_bill_task()`, `ProcessingQueue` | Picks queued bills, orchestrates OCR, guardrails, heuristics, and DB commit. |
+| **OCR** | PDF Rasterizer & OCR | `backend/app/services/ocr/engine.py` | `DocumentOCREngine.extract()` | Poppler 4-thread 200 DPI conversion & single-pass Tesseract neural OCR. |
+| **Extraction**| Document Guardrail | `backend/app/services/ocr/universal_extractor.py` | `validate_is_electricity_bill()` | Multi-keyword classifier rejecting datasheets/manuals as `REJECTED_NON_BILL`. |
+| **Extraction**| Multi-DISCOM Parser | `backend/app/services/ocr/universal_extractor.py` | `extract_heuristic_fields()`, `parse_fast()` | Regex heuristics for APDCL, JVVNL, GESCOM (amounts, dates, units, PF). |
+| **Audit** | Mathematical Audit | `backend/app/services/verification/engine.py` | `MathVerificationEngine.verify()` | Audits meter delta, multiplying factors, TOD sums, and power factor bounds. |
+| **AI** | Progressive Summary | `backend/app/services/ocr/universal_extractor.py` | `generate_bill_summary_and_fallback()` | Background LLM enrichment (Gemini/Ollama) with deterministic fallback. |
+| **Frontend** | Main UI & State Engine | `frontend-joulewise/app/page.tsx` | `handleFileUpload()`, `handleSelectBill()` | Pure CSS Module dashboard, file input reuse fix, and duplicate notices. |
+| **Frontend** | Visual Stylesheet | `frontend-joulewise/app/page.module.css` | Monochrome Design Tokens | Apple-inspired `#fafafa` theme, screen-blurring loader, and tables. |
+
+---
+
+## 3. Low-Level Design (LLD)
+
+### 3.1 Database Schema (PostgreSQL 17)
 
 ```sql
 CREATE TABLE bills (
@@ -153,24 +220,65 @@ CREATE TABLE bill_line_items (
 );
 ```
 
-### 2.2 Mathematical Verification Formulation
+---
 
-The verification engine executes 4 deterministic audit rules:
+### 3.2 Mathematical Audit Formulation & Rules
 
-#### Rule 1: Meter Consumption Reconciliation
+The audit engine executes four deterministic mathematical reconciliation rules defined in `app/services/verification/engine.py`:
+
+#### Rule 1: Meter Register Consumption Reconciliation
 For every meter register $i \in \{1, \dots, n\}$:
 $$\Delta_i = Current\_Reading_i - Previous\_Reading_i$$
 $$Calculated\_Units_i = \Delta_i \times Multiplying\_Factor_i$$
-$$\text{Tolerance Check: } |Calculated\_Units_i - Reported\_Units_i| \le \epsilon \quad (\epsilon = 1.0)$$
+$$\text{Audit Check: } |Calculated\_Units_i - Reported\_Units_i| \le \epsilon \quad (\epsilon = 1.0\text{ kWh})$$
 
-#### Rule 2: Active Energy Summation
-For multi-register meters (e.g. TOD peak/off-peak):
-$$\sum_{i=1}^n Calculated\_Units_{i, \text{kWh}} = Total\_Units_{kwh} \pm \epsilon$$
+#### Rule 2: Active Energy TOD Summation
+When Time-of-Day registers (Solar, Peak, Normal) are present:
+$$\text{Total Units} = \sum_{r \in \text{TOD}} Consumed\_Units_r \pm \epsilon$$
 
-#### Rule 3: Financial Net Due Balance
-$$\sum_{j=1}^m Line\_Item\_Amount_j = Total\_Current\_Charges \pm \epsilon_{financial}$$
-Where $\epsilon_{financial} = 2.0$ to account for state rounding rules (e.g. "Say Rs." truncation).
+#### Rule 3: Power Factor Physics Bounds
+$$\text{Valid PF Range: } 0.0 \le \text{Power Factor} \le 1.0 \quad (\text{or } 0.0\% \le \text{PF} \le 100.0\%)$$
+Any value outside this physical bound triggers an immediate anomaly flag.
 
-#### Rule 4: Power Factor Bounds Check
-$$0.0 \le Average\_Power\_Factor \le 1.0$$
-Values exceeding $1.0$ indicate register column alignment errors or decimal point shift.
+#### Rule 4: Date Chronology Invariant
+$$\text{Period Start} \le \text{Period End} \le \text{Bill Date} \le \text{Due Date}$$
+
+---
+
+### 3.3 Multi-DISCOM Heuristic Patterns
+
+1. **Assam Power Distribution Company Limited (APDCL)**:
+   - **TOD Registers**: Parses `Solar | Peak | Normal` columns and sums into `total_units_kwh`.
+   - **Financial Total**: Extracts `Grand Total` or `Say Rs. XXXXXX`.
+   - **Power Factor**: Captures `Power Factor: 99.00`.
+2. **Jaipur Vidyut Vitran Nigam Limited (JVVNL)**:
+   - **Net Payable Amount**: Looks for final net amount directly preceding the Indian Rupees in words (*"Five Lakh Eighty Five Thousand Two Hundred Seventeen Rupees Only"* $\to$ `₹585,217`), preventing confusion with intermediate subtotals like `NET ND` (`₹550,624`).
+   - **Average Power Factor**: Matches multi-line tabular header `Av. P.F` to value row `0.990`.
+   - **Dates**: Resolves 3-date block: Reading Date, Bill Date (`04-Aug-2025`), and Due Date (`14-Aug-2025`).
+3. **Gulbarga Electricity Supply Company Limited (GESCOM)**:
+   - **Bill / Dispatch Reference**: Extracts `No:CNL/AEE/SA/25-26/`.
+   - **Bill Date**: Targets signature date `Date: 03.07.2025` rather than plant commissioning date `Date of Service: 03.03.2012`.
+   - **Due Date**: Normalizes ordinal words (*"16th of July"*) against billing year $2025 \to$ `2025-07-16`.
+
+---
+
+## 4. Test Suite Verification Metrics
+
+JouleWise features 12 automated unit and integration tests executed with `pytest`:
+
+```text
+tests/test_api.py::test_health_check_endpoint PASSED              [  8%]
+tests/test_api.py::test_discoms_endpoint PASSED                   [ 16%]
+tests/test_api.py::test_settings_endpoints PASSED                 [ 25%]
+tests/test_api.py::test_bill_upload_and_stream PASSED             [ 33%]
+tests/test_math_verification.py::test_units_consistency_valid PASSED [ 41%]
+tests/test_math_verification.py::test_units_consistency_mismatch_detected PASSED [ 50%]
+tests/test_math_verification.py::test_power_factor_invalid PASSED [ 58%]
+tests/test_parsers.py::test_extract_apdcl_scnel_bill PASSED       [ 66%]
+tests/test_parsers.py::test_extract_apdcl_bill PASSED             [ 75%]
+tests/test_parsers.py::test_extract_jvvnl_bill PASSED             [ 83%]
+tests/test_parsers.py::test_extract_scanned_gescom_bill PASSED    [ 91%]
+tests/test_parsers.py::test_non_bill_guardrail_rejection PASSED   [100%]
+
+============================= 12 passed in 29.51s ==============================
+```
