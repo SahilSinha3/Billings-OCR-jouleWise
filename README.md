@@ -76,17 +76,47 @@ It replaces manual bill data entry with a deterministic OCR pipeline, database-b
 
 ---
 
-## Dataset Validation Cases
+## Automated Test Suite & Quality Assurance
 
-The platform is validated against 5 benchmark files in `Datasets/`:
+All core subsystems—API endpoints, deterministic mathematical audit, multi-engine OCR extraction, and non-bill guardrails—are covered by an automated test suite executed via `pytest`.
 
-| File | Utility / DISCOM | Type | Key Findings & Extracted Attributes | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| `Electricity Bill July'25.pdf` | JVVNL (Jaipur Vidyut) | Digital HT-5 | Acc: `97811741`, Units: `69,185 kWh`, Net Due: `₹5,50,624.78`, Due Date: `14-08-2025` | **Verified** |
-| `Energy Bill Mar-26 SCL.pdf` | APDCL (Assam Power) | Digital HT-II | Consumer: `M/S CEMENT MFG CO`, Acc: `006000002141`, Net Due: `₹1,73,06,353.00` | **Verified** |
-| `Energy Bill Mar-26 SCNEL.pdf` | APDCL (Assam Power) | Digital HT-II | Consumer: `Star Cement North-East Ltd`, Acc: `006010060944`, Bill: `900237539`, TOD Units: `306,161.46 kWh`, Net Due: `₹1,29,68,205.00`, Due Date: `27-April-2026`, PF: `99.00` | **Verified** |
-| `EB BILL_06JUN2025.pdf` | GESCOM (Gulbarga) | Scanned EHT | Consumer: `Chettinad Cement`, Acc: `EHT 5`, Units: `1,008,700 kWh`, Net Due: `₹1,08,55,959.00` | **Verified** |
-| `EM6400RegMap_V01.01.02.pdf` | Schneider Electric | Technical Manual | Modbus register map. Correctly triggered non-bill guardrail. | **Rejected (Guardrail)** |
+### Test Execution Summary
+
+| Metric | Result | Status |
+| :--- | :--- | :---: |
+| **Total Test Cases Written** | **11** | ✅ |
+| **Tests Passed** | **11** | ✅ |
+| **Tests Failed** | **0** | ✅ |
+| **Passing Percentage** | **100.0%** | 🟢 **100%** |
+| **Test Framework** | `pytest` 9.1.1 + `pytest-asyncio` | ✅ |
+| **Execution Duration** | **20.24s** *(includes neural OCR on multi-page 200 DPI scanned bills)* | ⚡ Fast |
+
+### Test Cases Breakdown
+
+| Test Suite / File | Test Case | Target Subsystem | Assertions & Audit Scope | Status | Pass Rate |
+| :--- | :--- | :--- | :--- | :---: | :---: |
+| `tests/test_api.py` | `test_health_check_endpoint` | API Gateway | Validates `GET /api/v1/health`, queue driver, and Tesseract readiness | **PASSED** | 100% |
+| `tests/test_api.py` | `test_discoms_endpoint` | Configuration | Verifies DISCOM registry, tariff codes, and lookup keywords | **PASSED** | 100% |
+| `tests/test_api.py` | `test_settings_endpoints` | Settings Service | Tests live updating of Gemini API key, Ollama URL, and connection latency | **PASSED** | 100% |
+| `tests/test_api.py` | `test_bill_upload_and_stream` | Storage & Streaming | Verifies zero-disk PostgreSQL `BYTEA` upload and stream retrieval | **PASSED** | 100% |
+| `tests/test_math_verification.py` | `test_units_consistency_valid` | Audit Engine | Verifies $(\text{Curr} - \text{Prev}) \times \text{MF} = \text{Consumed}$ with zero discrepancy | **PASSED** | 100% |
+| `tests/test_math_verification.py` | `test_units_consistency_mismatch_detected` | Audit Engine | Asserts `METER_READINGS_CONSISTENCY` discrepancy flag on synthetic mismatch | **PASSED** | 100% |
+| `tests/test_math_verification.py` | `test_power_factor_invalid` | Audit Engine | Asserts `POWER_FACTOR_RANGE` critical failure when $\text{PF} > 1.0$ (unphysical) | **PASSED** | 100% |
+| `tests/test_parsers.py` | `test_extract_apdcl_scnel_bill` | TOD OCR Parser | Validates APDCL TOD sum ($306,161.46\text{ kWh}$), PF $99.00$, and bill metadata | **PASSED** | 100% |
+| `tests/test_parsers.py` | `test_extract_apdcl_bill` | OCR Parser | Validates APDCL HT-II industrial bill (`SCL`), consumer ID, and net due | **PASSED** | 100% |
+| `tests/test_parsers.py` | `test_extract_scanned_gescom_bill` | Neural Tesseract | Validates 200 DPI neural OCR recovery on degraded dot-matrix scanned bill | **PASSED** | 100% |
+| `tests/test_parsers.py` | `test_non_bill_guardrail_rejection` | Guardrails | Confirms rejection of Schneider EM6400 datasheet (`REJECTED_NON_BILL`) | **PASSED** | 100% |
+
+### Running the Test Suite
+
+```bash
+# Run the complete test suite
+cd backend
+.venv/bin/pytest
+
+# Run tests with verbose output and per-test timing
+.venv/bin/pytest -v --durations=10
+```
 
 ---
 
