@@ -35,14 +35,14 @@ class BillUploadResponse(BaseModel):
 
 class BillDetailResponse(BaseModel):
     id: str = Field(..., description="Unique bill record ID")
-    discom_code: str = Field(..., description="Normalized DISCOM code")
-    discom_name: str = Field(..., description="State electricity board name")
-    consumer_number: str = Field(..., description="Consumer ID / Account ID / CA number")
+    discom_code: str | None = Field(default=None, description="Normalized DISCOM code")
+    discom_name: str | None = Field(default=None, description="State electricity board name")
+    consumer_number: str | None = Field(default=None, description="Consumer ID / Account ID / CA number")
     account_number: str | None = Field(default=None, description="Sub-account or billing ID")
-    consumer_name: str = Field(..., description="Billed entity or individual name")
+    consumer_name: str | None = Field(default=None, description="Billed entity or individual name")
     billing_address: str | None = Field(default=None, description="Premises service address")
 
-    bill_number: str = Field(..., description="Official invoice/bill number")
+    bill_number: str | None = Field(default=None, description="Official invoice/bill number")
     bill_date: date | None = Field(default=None, description="Date bill was issued")
     billing_period_start: date | None = Field(default=None, description="Billing cycle start")
     billing_period_end: date | None = Field(default=None, description="Billing cycle end")
@@ -54,11 +54,11 @@ class BillDetailResponse(BaseModel):
     billed_demand_kva: float | None = Field(default=None, description="Recorded peak demand in kVA")
     power_factor: float | None = Field(default=None, description="Average billed power factor")
 
-    total_units_kwh: float = Field(..., description="Total active energy consumption in kWh")
+    total_units_kwh: float | None = Field(default=None, description="Total active energy consumption in kWh")
     total_units_kvah: float | None = Field(default=None, description="Apparent energy consumption in kVAh")
 
-    total_current_charges: float = Field(..., description="Net current billing cycle charges")
-    net_amount_due: float = Field(..., description="Total payable amount including taxes and arrears")
+    total_current_charges: float | None = Field(default=None, description="Net current billing cycle charges")
+    net_amount_due: float | None = Field(default=None, description="Total payable amount including taxes and arrears")
     amount_after_due_date: float | None = Field(default=None, description="Late payment surcharge amount")
 
     status: str = Field(..., description="QUEUED, PARSED, VERIFIED, FLAGGED_FOR_REVIEW")

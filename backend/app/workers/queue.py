@@ -98,6 +98,23 @@ class ProcessingQueue:
 
             if not is_valid:
                 bill.status = "REJECTED_NON_BILL"
+                bill.discom_code = None
+                bill.discom_name = None
+                bill.consumer_name = None
+                bill.consumer_number = None
+                bill.account_number = None
+                bill.bill_number = None
+                bill.total_units_kwh = None
+                bill.total_units_kvah = None
+                bill.total_current_charges = None
+                bill.net_amount_due = None
+                bill.power_factor = None
+                bill.bill_date = None
+                bill.due_date = None
+                bill.billing_period_start = None
+                bill.billing_period_end = None
+                bill.contract_demand_kva = None
+                bill.tariff_category = None
                 await session.commit()
                 await cache_service.set_cached_bill(
                     bill.file_sha256,

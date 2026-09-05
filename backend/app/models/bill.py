@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 class Bill(BaseModel):
     __tablename__ = "bills"
 
-    discom_code: Mapped[str] = mapped_column(String(50), index=True)
-    discom_name: Mapped[str] = mapped_column(String(200))
-    consumer_number: Mapped[str] = mapped_column(String(100), index=True)
+    discom_code: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    discom_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    consumer_number: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     account_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    consumer_name: Mapped[str] = mapped_column(String(255))
+    consumer_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     billing_address: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     bill_number: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
@@ -33,11 +33,11 @@ class Bill(BaseModel):
     billed_demand_kva: Mapped[float | None] = mapped_column(Float, nullable=True)
     power_factor: Mapped[float | None] = mapped_column(Float, nullable=True)
 
-    total_units_kwh: Mapped[float] = mapped_column(Float, default=0.0)
+    total_units_kwh: Mapped[float | None] = mapped_column(Float, nullable=True, default=None)
     total_units_kvah: Mapped[float | None] = mapped_column(Float, nullable=True)
 
-    total_current_charges: Mapped[float] = mapped_column(Float, default=0.0)
-    net_amount_due: Mapped[float] = mapped_column(Float, default=0.0)
+    total_current_charges: Mapped[float | None] = mapped_column(Float, nullable=True, default=None)
+    net_amount_due: Mapped[float | None] = mapped_column(Float, nullable=True, default=None)
     amount_after_due_date: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     file_data: Mapped[bytes] = mapped_column(LargeBinary)

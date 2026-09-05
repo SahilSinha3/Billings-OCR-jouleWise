@@ -133,19 +133,19 @@ async def upload_bill(
     mime_type = file.content_type or ("application/pdf" if file.filename.lower().endswith(".pdf") else "image/png")
 
     bill = Bill(
-        discom_code="PENDING",
-        discom_name="Detecting...",
-        consumer_number="PENDING",
-        consumer_name="Processing...",
-        bill_number=f"DOC-{sha256_hash[:8]}",
+        discom_code=None,
+        discom_name=None,
+        consumer_number=None,
+        consumer_name=None,
+        bill_number=None,
         file_data=contents,
         file_name=file.filename,
         mime_type=mime_type,
         file_sha256=sha256_hash,
         status="QUEUED",
-        total_units_kwh=0.0,
-        total_current_charges=0.0,
-        net_amount_due=0.0,
+        total_units_kwh=None,
+        total_current_charges=None,
+        net_amount_due=None,
     )
 
     session.add(bill)
@@ -205,19 +205,19 @@ async def bulk_upload_bills(
         mime_type = file.content_type or ("application/pdf" if file.filename.lower().endswith(".pdf") else "image/png")
 
         bill = Bill(
-            discom_code="PENDING",
-            discom_name="Detecting...",
-            consumer_number="PENDING",
-            consumer_name="Processing...",
-            bill_number=f"DOC-{sha256_hash[:8]}",
+            discom_code=None,
+            discom_name=None,
+            consumer_number=None,
+            consumer_name=None,
+            bill_number=None,
             file_data=contents,
             file_name=file.filename,
             mime_type=mime_type,
             file_sha256=sha256_hash,
             status="QUEUED",
-            total_units_kwh=0.0,
-            total_current_charges=0.0,
-            net_amount_due=0.0,
+            total_units_kwh=None,
+            total_current_charges=None,
+            net_amount_due=None,
         )
 
         session.add(bill)
@@ -273,26 +273,48 @@ async def export_all_bills_csv(
         ]
     )
     for b in bills:
-        writer.writerow(
-            [
-                b.id,
-                b.discom_code,
-                b.discom_name,
-                b.consumer_name,
-                b.consumer_number or b.account_number or "",
-                b.bill_number or "",
-                b.bill_date.isoformat() if b.bill_date else "",
-                b.due_date.isoformat() if b.due_date else "",
-                b.total_units_kwh or 0.0,
-                b.power_factor or "",
-                b.net_amount_due or 0.0,
-                b.status,
-                "Yes" if b.is_math_verified else "No",
-                (b.bill_summary or "").replace("\n", " "),
-                b.file_name,
-                b.created_at.isoformat() if b.created_at else "",
-            ]
-        )
+        if b.status == "REJECTED_NON_BILL" or not b.is_valid_bill:
+            writer.writerow(
+                [
+                    b.id,
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    b.status,
+                    "No",
+                    (b.bill_summary or "").replace("\n", " "),
+                    b.file_name,
+                    b.created_at.isoformat() if b.created_at else "",
+                ]
+            )
+        else:
+            writer.writerow(
+                [
+                    b.id,
+                    b.discom_code or "",
+                    b.discom_name or "",
+                    b.consumer_name or "",
+                    b.consumer_number or b.account_number or "",
+                    b.bill_number or "",
+                    b.bill_date.isoformat() if b.bill_date else "",
+                    b.due_date.isoformat() if b.due_date else "",
+                    b.total_units_kwh if b.total_units_kwh is not None else "",
+                    b.power_factor if b.power_factor is not None else "",
+                    b.net_amount_due if b.net_amount_due is not None else "",
+                    b.status,
+                    "Yes" if b.is_math_verified else "No",
+                    (b.bill_summary or "").replace("\n", " "),
+                    b.file_name,
+                    b.created_at.isoformat() if b.created_at else "",
+                ]
+            )
 
     csv_data = output.getvalue()
     filename = f"joulewise_all_bills_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
@@ -346,18 +368,23 @@ async def export_single_bill_csv(
     output = io.StringIO()
     writer = csv.writer(output)
 
+    is_rejected = bill.status == "REJECTED_NON_BILL" or not bill.is_valid_bill
     writer.writerow(["SECTION", "BILL OVERVIEW & IDENTIFIERS"])
     writer.writerow(["Bill ID", bill.id])
-    writer.writerow(["Discom Code", bill.discom_code])
-    writer.writerow(["Discom Name", bill.discom_name])
-    writer.writerow(["Consumer Name", bill.consumer_name])
-    writer.writerow(["Consumer / CA Number", bill.consumer_number or bill.account_number or ""])
-    writer.writerow(["Bill Number", bill.bill_number or ""])
-    writer.writerow(["Bill Date", bill.bill_date.isoformat() if bill.bill_date else ""])
-    writer.writerow(["Due Date", bill.due_date.isoformat() if bill.due_date else ""])
-    writer.writerow(["Total Units Consumed (kWh)", bill.total_units_kwh or 0.0])
-    writer.writerow(["Power Factor", bill.power_factor or ""])
-    writer.writerow(["Net Amount Due (INR)", bill.net_amount_due or 0.0])
+    writer.writerow(["Discom Code", "" if is_rejected else (bill.discom_code or "")])
+    writer.writerow(["Discom Name", "" if is_rejected else (bill.discom_name or "")])
+    writer.writerow(["Consumer Name", "" if is_rejected else (bill.consumer_name or "")])
+    writer.writerow(
+        ["Consumer / CA Number", "" if is_rejected else (bill.consumer_number or bill.account_number or "")]
+    )
+    writer.writerow(["Bill Number", "" if is_rejected else (bill.bill_number or "")])
+    writer.writerow(["Bill Date", "" if is_rejected or not bill.bill_date else bill.bill_date.isoformat()])
+    writer.writerow(["Due Date", "" if is_rejected or not bill.due_date else bill.due_date.isoformat()])
+    writer.writerow(
+        ["Total Units Consumed (kWh)", "" if is_rejected or bill.total_units_kwh is None else bill.total_units_kwh]
+    )
+    writer.writerow(["Power Factor", "" if is_rejected or bill.power_factor is None else bill.power_factor])
+    writer.writerow(["Net Amount Due (INR)", "" if is_rejected or bill.net_amount_due is None else bill.net_amount_due])
     writer.writerow(["Audit Status", bill.status])
     writer.writerow(["Mathematical Verification", "PASS" if bill.is_math_verified else "FLAGGED / PENDING"])
     writer.writerow(["Plain-English Summary", (bill.bill_summary or "").replace("\n", " ")])

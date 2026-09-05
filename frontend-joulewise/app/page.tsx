@@ -46,6 +46,7 @@ export default function JouleWiseDashboard() {
   const [selectedBill, setSelectedBill] = useState<BillDetail | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<{ message: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [activeLeftTab, setActiveLeftTab] = useState<"document" | "raw_text">("document");
   const [copiedText, setCopiedText] = useState(false);
@@ -146,6 +147,7 @@ export default function JouleWiseDashboard() {
     if (!files || files.length === 0) return;
     setIsUploading(true);
     setUploadError(null);
+    setUploadNotice(null);
 
     const formData = new FormData();
     const fileArray = Array.from(files);
@@ -162,6 +164,11 @@ export default function JouleWiseDashboard() {
           throw new Error(errData.detail || "Upload failed.");
         }
         const uploadRes = await res.json();
+        if (uploadRes.message && uploadRes.message.toLowerCase().includes("already processed")) {
+          setUploadNotice({
+            message: `Bill "${uploadRes.file_name || fileArray[0].name}" is already parsed. Opened existing record.`,
+          });
+        }
         await fetchBills();
         if (uploadRes.bill_id) {
           const checkRes = await fetch(`${API_BASE_URL}/bills/${uploadRes.bill_id}`);
@@ -180,7 +187,27 @@ export default function JouleWiseDashboard() {
           const errData = await res.json();
           throw new Error(errData.detail || "Bulk upload failed.");
         }
+        const bulkRes = await res.json();
+        const alreadyCount = Array.isArray(bulkRes)
+          ? bulkRes.filter((r: { message?: string }) => r.message && r.message.toLowerCase().includes("already processed")).length
+          : 0;
+        if (alreadyCount === fileArray.length) {
+          setUploadNotice({
+            message: `All ${fileArray.length} bills already parsed. Loaded complete existing dataset.`,
+          });
+        } else if (alreadyCount > 0) {
+          setUploadNotice({
+            message: `${alreadyCount} bills already parsed (loaded existing); ${fileArray.length - alreadyCount} new bills queued.`,
+          });
+        }
         await fetchBills();
+        if (Array.isArray(bulkRes) && bulkRes.length > 0 && bulkRes[0].bill_id) {
+          const checkRes = await fetch(`${API_BASE_URL}/bills/${bulkRes[0].bill_id}`);
+          if (checkRes.ok) {
+            const first = await checkRes.json();
+            handleSelectBill(first);
+          }
+        }
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -190,6 +217,9 @@ export default function JouleWiseDashboard() {
       }
     } finally {
       setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -218,6 +248,8 @@ export default function JouleWiseDashboard() {
         method: "DELETE",
       });
       if (res.ok) {
+        setUploadNotice(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         if (selectedBill?.id === billId) {
           const remaining = bills.filter((b) => b.id !== billId);
           if (remaining.length > 0) {
@@ -241,6 +273,8 @@ export default function JouleWiseDashboard() {
         method: "DELETE",
       });
       if (res.ok) {
+        setUploadNotice(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         setBills([]);
         setSelectedBill(null);
         setEditForm({});
@@ -466,7 +500,12 @@ export default function JouleWiseDashboard() {
               <input
                 type="file"
                 ref={fileInputRef}
-                onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    handleFileUpload(e.target.files);
+                  }
+                  e.target.value = "";
+                }}
                 multiple
                 accept=".pdf,.png,.jpg,.jpeg"
                 style={{ display: "none" }}
@@ -487,6 +526,49 @@ export default function JouleWiseDashboard() {
                 </div>
               </div>
             </div>
+
+            {uploadNotice && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "rgba(37, 99, 235, 0.12)",
+                  border: "1px solid rgba(59, 130, 246, 0.4)",
+                  borderRadius: "8px",
+                  padding: "9px 12px",
+                  marginTop: 10,
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <CheckCircle2 style={{ width: 16, height: 16, color: "#3b82f6", flexShrink: 0 }} />
+                  <div>
+                    <strong style={{ display: "block", fontSize: 12, color: "var(--color-text-primary)" }}>
+                      Already Parsed
+                    </strong>
+                    <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
+                      {uploadNotice.message}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUploadNotice(null)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--color-text-muted)",
+                    fontSize: 14,
+                    padding: "2px 4px",
+                  }}
+                  title="Dismiss"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
 
             {uploadError && (
               <div className={`${styles.alertBox} ${styles.alertError}`}>

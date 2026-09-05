@@ -38,13 +38,13 @@ export interface MathVerificationReport {
 
 export interface BillDetail {
   id: string;
-  discom_code: string;
-  discom_name: string;
-  consumer_number: string;
+  discom_code?: string | null;
+  discom_name?: string | null;
+  consumer_number?: string | null;
   account_number?: string | null;
-  consumer_name: string;
+  consumer_name?: string | null;
   billing_address?: string | null;
-  bill_number: string;
+  bill_number?: string | null;
   bill_date?: string | null;
   billing_period_start?: string | null;
   billing_period_end?: string | null;
@@ -54,10 +54,10 @@ export interface BillDetail {
   contract_demand_kva?: number | null;
   billed_demand_kva?: number | null;
   power_factor?: number | null;
-  total_units_kwh: number;
+  total_units_kwh?: number | null;
   total_units_kvah?: number | null;
-  total_current_charges: number;
-  net_amount_due: number;
+  total_current_charges?: number | null;
+  net_amount_due?: number | null;
   amount_after_due_date?: number | null;
   file_name?: string | null;
   status: "QUEUED" | "EXTRACTING" | "VERIFIED" | "FLAGGED_FOR_REVIEW" | "FAILED" | "REJECTED_NON_BILL";
