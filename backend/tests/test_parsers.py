@@ -48,7 +48,35 @@ async def test_extract_apdcl_bill():
     assert data["discom_code"] == "APDCL"
     assert "CEMENT MANUFACTURING COMPANY" in data["consumer_name"]
     assert data["consumer_number"] == "006000002141"
+    assert data["bill_number"] == "900237538"
+    assert str(data["due_date"]) == "2026-04-27"
+    assert data["total_units_kwh"] == 283298.60
     assert data["net_amount_due"] == 17306353.00
+    assert data["power_factor"] == 99.00
+
+
+@pytest.mark.asyncio
+async def test_extract_jvvnl_bill():
+    pdf_path = DATASETS_DIR / "Electricity Bill July'25.pdf"
+    assert pdf_path.exists()
+
+    with open(pdf_path, "rb") as f:
+        file_bytes = f.read()
+
+    ocr_result = ocr_engine.extract(file_bytes, pdf_path.name)
+    assert len(ocr_result.text) > 100
+
+    data = await universal_extractor.parse(ocr_result.text)
+    assert data["is_valid_bill"] is True
+    assert data["discom_code"] == "JVVNL"
+    assert "Jbm Auto" in data["consumer_name"]
+    assert "97811741" in (data["consumer_number"] or data["account_number"])
+    assert data["bill_number"] == "082517998"
+    assert str(data["bill_date"]) == "2025-08-04"
+    assert str(data["due_date"]) == "2025-08-14"
+    assert data["total_units_kwh"] == 69185.00
+    assert data["net_amount_due"] == 585217.00
+    assert data["power_factor"] == 0.99
 
 
 @pytest.mark.asyncio
@@ -67,6 +95,10 @@ async def test_extract_scanned_gescom_bill():
     assert data["discom_code"] == "GESCOM"
     assert "Chettinad Cement" in data["consumer_name"]
     assert "EHT" in data["consumer_number"]
+    assert data["bill_number"] == "CNL/AEE/SA/25-26/"
+    assert str(data["bill_date"]) == "2025-07-03"
+    assert str(data["due_date"]) == "2025-07-16"
+    assert data["total_units_kwh"] == 1008700.00
     assert data["power_factor"] == 0.94
     assert data["net_amount_due"] == 10855959.00
 

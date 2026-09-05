@@ -136,7 +136,7 @@ class ProcessingQueue:
             bill.consumer_name = parsed_data.get("consumer_name") or "Consumer"
             bill.consumer_number = parsed_data.get("consumer_number") or bill.file_sha256[:10]
             bill.account_number = parsed_data.get("account_number")
-            bill.bill_number = parsed_data.get("bill_number") or f"INV-{bill.file_sha256[:8]}"
+            bill.bill_number = parsed_data.get("bill_number")
             bill.bill_date = parsed_data.get("bill_date")
             bill.due_date = parsed_data.get("due_date")
             bill.billing_period_start = parsed_data.get("billing_period_start")

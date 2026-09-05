@@ -21,7 +21,7 @@ class Bill(BaseModel):
     consumer_name: Mapped[str] = mapped_column(String(255))
     billing_address: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    bill_number: Mapped[str] = mapped_column(String(100), index=True)
+    bill_number: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     bill_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     billing_period_start: Mapped[date | None] = mapped_column(Date, nullable=True)
     billing_period_end: Mapped[date | None] = mapped_column(Date, nullable=True)

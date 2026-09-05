@@ -159,17 +159,20 @@ class UniversalBillExtractor:
                 break
 
         # 3. Bill Number
-        bill_number = ""
+        bill_number = None
         bill_patterns = [
             r"Bill Number\s*[:\-]?\s*([A-Za-z0-9\-]+)",
             r"Bill\s*No\s*[:\-]?\s*([A-Za-z0-9\-]+)",
             r"Invoice\s*No\s*[:\-]?\s*([A-Za-z0-9\-]{5,20})",
+            r"(?:Bill\s*(?:Number|No)|Invoice\s*No|No)\s*[:\-]\s*([A-Za-z0-9\/\-]+(?:\/[A-Za-z0-9\/\-]+)*)",
         ]
         for pat in bill_patterns:
             m = re.search(pat, clean_text, re.IGNORECASE)
             if m:
-                bill_number = m.group(1).strip()
-                break
+                cand = m.group(1).strip()
+                if len(cand) >= 2 and not cand.lower().startswith("of"):
+                    bill_number = cand
+                    break
 
         # 4. Dates
         bill_date = None
@@ -216,41 +219,63 @@ class UniversalBillExtractor:
             if due_m:
                 raw_due = due_m.group(1)
                 due_date = self.parse_date(raw_due)
-                if not due_date and year_val:
-                    clean_tokens = re.findall(r"\d{1,2}|[A-Za-z]+", raw_due)
-                    if len(clean_tokens) >= 2:
-                        due_date = self.parse_date(f"{clean_tokens[0]}-{clean_tokens[1]}-{year_val}")
 
-            # Bill Date - use negative lookbehind so it never mistakenly captures "Due Date"
+            # Bill Date - avoid "Date of Service" (which is commissioning date) and "Due Date"
             bdate_m = re.search(
-                r"(?<!Due\s)(?:Bill Date|Date of Bill|Date of Service|Bill Issue Date)\s*[:\-]?\s*([0-9]{1,2}[\.\-\/][A-Za-z0-9]{2,9}[\.\-\/][0-9]{4})",
+                r"(?<!Due\s)(?:Bill Date|Date of Bill|Bill Issue Date)\s*[:\-]?\s*([0-9]{1,2}[\.\-\/][A-Za-z0-9]{2,9}[\.\-\/][0-9]{4})",
                 clean_text,
                 re.IGNORECASE,
             )
             if bdate_m:
                 bill_date = self.parse_date(bdate_m.group(1))
-                if bill_date and not year_val:
-                    year_val = bill_date.year
+            elif not bill_date:
+                # Standalone Date: DD.MM.YYYY (e.g. Date: 03.07.2025 at signature), ignoring Date of Service
+                stand_date_m = re.search(
+                    r"(?<!Due\s)(?<!Service\s)(?<!Reading\s)\bDate\s*[:\-]\s*([0-9]{1,2}[\.\-\/][0-9]{1,2}[\.\-\/][0-9]{4})",
+                    clean_text,
+                    re.IGNORECASE,
+                )
+                if stand_date_m:
+                    bill_date = self.parse_date(stand_date_m.group(1))
+
+            if bill_date and not year_val:
+                year_val = bill_date.year
+
+            # If due date needed year or word filtering
+            if due_m and not due_date and year_val:
+                raw_due = due_m.group(1)
+                day_m = re.search(r"\d{1,2}", raw_due)
+                month_words = [
+                    w for w in re.findall(r"[A-Za-z]{3,9}", raw_due) if w.lower() not in ("th", "st", "nd", "rd", "of")
+                ]
+                if day_m and month_words:
+                    due_date = self.parse_date(f"{day_m.group(0)}-{month_words[0]}-{year_val}")
 
         # 5. Net Amount Due
         net_amount_due = 0.0
-        amt_patterns = [
-            r"Say[^\d]*(\d{6,10})",
-            r"=\s*(\d{7,10})",
-            r"Grand Total[^\n]*?(\d{7,9}[\s\.]\d{2})",
-            r"(?:Grand Total|Net Payable Amount|Net Amount Due|Total Due)[^\n=]*?(?:=|\:|Rs\.?|₹)?\s*(\d{6,10})",
-            r"Bill Amount:\s*([\d,]+\.?\d*)",
-            r"Net Payable Amount\s*\n\s*([\d,]+\.?\d*)",
-            r"Payable amount before due date[^\d]*([\d,]+\.?\d*)",
-        ]
-        for pat in amt_patterns:
-            m = re.search(pat, clean_text, re.IGNORECASE)
-            if m:
-                raw = m.group(1).replace(" ", ".")
-                val = self.clean_amount(raw)
-                if val > 0:
-                    net_amount_due = val
-                    break
+        # Check explicit "Rupees Only" amount first if present (e.g. JVVNL final payable amount before words)
+        rupees_m = re.search(r"(\d{5,10})\s*\n\s*(?:[A-Za-z\s]+?Rupees Only)", clean_text, re.IGNORECASE)
+        if rupees_m:
+            net_amount_due = float(rupees_m.group(1))
+
+        if net_amount_due == 0.0:
+            amt_patterns = [
+                r"Say[^\d]*(\d{6,10})",
+                r"=\s*(\d{7,10})",
+                r"Grand Total[^\n]*?(\d{7,9}[\s\.]\d{2})",
+                r"(?:Grand Total|Net Amount Due|Total Due)[^\n=]*?(?:=|\:|Rs\.?|₹)?\s*(\d{6,10})",
+                r"Bill Amount:\s*([\d,]+\.?\d*)",
+                r"Net Payable Amount\s*[:\-]?\s*([\d,]+\.?\d*)",
+                r"Payable amount before due date[^\d]*([\d,]+\.?\d*)",
+            ]
+            for pat in amt_patterns:
+                m = re.search(pat, clean_text, re.IGNORECASE)
+                if m:
+                    raw = m.group(1).replace(" ", ".")
+                    val = self.clean_amount(raw)
+                    if val > 0:
+                        net_amount_due = val
+                        break
 
         # 6. Total Units (kWh) & Time-of-Day (TOD) Registers
         total_units = 0.0
@@ -322,7 +347,7 @@ class UniversalBillExtractor:
 
         power_factor = None
         pf_m = re.search(
-            r"(?:Average Power Factor|Power Factor|Av\.\s*P\.F|Bpf)[^\d]*?([\d\.]+)",
+            r"(?:Average Power Factor|Power Factor|Bpf)[^\d]*?([\d\.]+)",
             clean_text,
             re.IGNORECASE,
         )
@@ -333,6 +358,17 @@ class UniversalBillExtractor:
                     power_factor = val
             except ValueError:
                 pass
+
+        if power_factor is None:
+            # JVVNL format: Av. P.F column header followed by values row (e.g. 0.990)
+            pf_jvvnl = re.search(r"Av\.\s*P\.F[\s\S]{1,250}?\n\s*(0\.[789]\d{2,3})", clean_text, re.IGNORECASE)
+            if pf_jvvnl:
+                try:
+                    val = float(pf_jvvnl.group(1))
+                    if 0.0 <= val <= 100.0:
+                        power_factor = val
+                except ValueError:
+                    pass
 
         # 8. Tariff Category
         tariff_category = None
