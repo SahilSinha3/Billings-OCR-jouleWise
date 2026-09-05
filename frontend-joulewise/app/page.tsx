@@ -354,15 +354,6 @@ export default function JouleWiseDashboard() {
             <div className={styles.brandLogo}>
               <Zap style={{ width: 18, height: 18, fill: "#ffffff" }} />
             </div>
-            <div>
-              <div className={styles.brandTitleRow}>
-                <span className={styles.brandName}>JouleWise</span>
-                <span className={styles.badge}>Enterprise OCR</span>
-              </div>
-              <p className={styles.brandSubtitle}>
-                Tesseract Neural Engine • PostgreSQL BYTEA Storage • Redis Cache
-              </p>
-            </div>
           </div>
 
           <div className={styles.headerActions}>
@@ -425,7 +416,7 @@ export default function JouleWiseDashboard() {
               </div>
               <h3 className={styles.loaderTitle}>Extracting Utility Bill Data</h3>
               <p className={styles.loaderDesc}>
-                Zero local disk persistence • Direct binary streaming to PostgreSQL BYTEA
+                Direct binary streaming to PostgreSQL BYTEA
               </p>
             </div>
 
@@ -485,7 +476,7 @@ export default function JouleWiseDashboard() {
                 <div>
                   <span className={styles.dropzoneTextMain}>Upload Bills (Single or Bulk)</span>
                   <span className={styles.dropzoneTextSub}>
-                    Drag & drop PDFs or images • Zero local disk persistence
+                    Drag & drop PDFs or images
                   </span>
                 </div>
               </div>
@@ -571,13 +562,12 @@ export default function JouleWiseDashboard() {
                               </span>
                             ) : (
                               <span
-                                className={`${styles.statusTag} ${
-                                  isRejected
-                                    ? styles.statusInvalid
-                                    : isVerified
+                                className={`${styles.statusTag} ${isRejected
+                                  ? styles.statusInvalid
+                                  : isVerified
                                     ? styles.statusVerified
                                     : styles.statusReview
-                                }`}
+                                  }`}
                               >
                                 {isRejected ? "Invalid Doc" : isVerified ? "Verified" : "Review"}
                               </span>
@@ -997,11 +987,10 @@ export default function JouleWiseDashboard() {
                   </span>
                 </div>
                 <span
-                  className={`${styles.statusTag} ${
-                    settingsData?.ollama_status === "AVAILABLE"
-                      ? styles.statusVerified
-                      : styles.statusReview
-                  }`}
+                  className={`${styles.statusTag} ${settingsData?.ollama_status === "AVAILABLE"
+                    ? styles.statusVerified
+                    : styles.statusReview
+                    }`}
                 >
                   {settingsData?.ollama_status || "Checking..."}
                 </span>
@@ -1042,9 +1031,8 @@ export default function JouleWiseDashboard() {
             {/* Test Connection Result Alert */}
             {testResult && (
               <div
-                className={`${styles.alertBox} ${
-                  testResult.success ? styles.statusVerified : styles.alertError
-                }`}
+                className={`${styles.alertBox} ${testResult.success ? styles.statusVerified : styles.alertError
+                  }`}
               >
                 {testResult.success ? (
                   <CheckCircle2 style={{ width: 16, height: 16, flexShrink: 0 }} />
