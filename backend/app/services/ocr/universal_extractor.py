@@ -145,11 +145,12 @@ class UniversalBillExtractor:
         # 2. Account / Consumer Number
         consumer_number = ""
         acc_patterns = [
-            r"Consumer Number:\s*([A-Za-z0-9]+)",
-            r"Acc No:\s*([A-Za-z0-9]+)",
-            r"K\s*No:\s*(\d+)",
-            r"R\.R\.\s*No:\s*([A-Za-z0-9\s\-]+?)(?=\s+Last|\n|$)",
-            r"(?:Consumer No|CA Number)\s*[:\-]?\s*(\d{8,15})",
+            r"Consumer Number\s*[:\-]?\s*([A-Za-z0-9]+)",
+            r"Acc(?:ount)?\s*No\s*[:\-]?\s*([A-Za-z0-9]+)",
+            r"CA\s*(?:Number|No)\s*[:\-]?\s*([A-Za-z0-9]+)",
+            r"K\s*No\s*[:\-]?\s*(\d+)",
+            r"R\.R\.\s*No\s*[:\-]?\s*([A-Za-z0-9\s\-]+?)(?=\s+Last|\n|$)",
+            r"Consumer\s*No\s*[:\-]?\s*(\d{8,15})",
         ]
         for pat in acc_patterns:
             m = re.search(pat, clean_text, re.IGNORECASE)
@@ -160,8 +161,8 @@ class UniversalBillExtractor:
         # 3. Bill Number
         bill_number = ""
         bill_patterns = [
-            r"Bill Number:\s*([A-Za-z0-9\-]+)",
-            r"Bill No:\s*([A-Za-z0-9\-]+)",
+            r"Bill Number\s*[:\-]?\s*([A-Za-z0-9\-]+)",
+            r"Bill\s*No\s*[:\-]?\s*([A-Za-z0-9\-]+)",
             r"Invoice\s*No\s*[:\-]?\s*([A-Za-z0-9\-]{5,20})",
         ]
         for pat in bill_patterns:
@@ -206,18 +207,9 @@ class UniversalBillExtractor:
                     period_start = self.parse_date(f"01-{m_name}-{m_yr}")
                     period_end = self.parse_date(f"31-{m_name}-{m_yr}")
 
-            bdate_m = re.search(
-                r"(?:Bill Date|Date of Bill|Date:\s*|Bill Issue Date)\s*[:\-]?\s*([0-9]{1,2}[\.\-\/][A-Za-z0-9]{2,9}[\.\-\/][0-9]{4})",
-                clean_text,
-                re.IGNORECASE,
-            )
-            if bdate_m:
-                bill_date = self.parse_date(bdate_m.group(1))
-                if bill_date and not year_val:
-                    year_val = bill_date.year
-
+            # Due Date - check specifically first
             due_m = re.search(
-                r"(?:Due Date|Last Date of Payment)\s*[:\-]?\s*([0-9]{1,2}(?:st|nd|rd|th)?\s*(?:of)?\s*[A-Za-z0-9]{2,9}[\.\-\/][0-9]{4}|[0-9]{1,2}(?:st|nd|rd|th)?\s*(?:of)?\s*[A-Za-z]+)",
+                r"(?:Due Date|Last Date of Payment)\s*[:\-]?\s*([0-9]{1,2}[\-\/\.\s]+[A-Za-z0-9]+[\-\/\.\s]+[0-9]{4}|[0-9]{1,2}(?:st|nd|rd|th)?\s*(?:of)?\s*[A-Za-z]+)",
                 clean_text,
                 re.IGNORECASE,
             )
@@ -228,6 +220,17 @@ class UniversalBillExtractor:
                     clean_tokens = re.findall(r"\d{1,2}|[A-Za-z]+", raw_due)
                     if len(clean_tokens) >= 2:
                         due_date = self.parse_date(f"{clean_tokens[0]}-{clean_tokens[1]}-{year_val}")
+
+            # Bill Date - use negative lookbehind so it never mistakenly captures "Due Date"
+            bdate_m = re.search(
+                r"(?<!Due\s)(?:Bill Date|Date of Bill|Date of Service|Bill Issue Date)\s*[:\-]?\s*([0-9]{1,2}[\.\-\/][A-Za-z0-9]{2,9}[\.\-\/][0-9]{4})",
+                clean_text,
+                re.IGNORECASE,
+            )
+            if bdate_m:
+                bill_date = self.parse_date(bdate_m.group(1))
+                if bill_date and not year_val:
+                    year_val = bill_date.year
 
         # 5. Net Amount Due
         net_amount_due = 0.0
@@ -249,23 +252,67 @@ class UniversalBillExtractor:
                     net_amount_due = val
                     break
 
-        # 6. Total Units (kWh)
+        # 6. Total Units (kWh) & Time-of-Day (TOD) Registers
         total_units = 0.0
-        units_patterns = [
-            r"Billable Units in\s*KWh\s*[:\n\s]*([\d,]+\.?\d*)",
-            r"Net KWH Cons\.[^\n]*\n\s*([\d,]+\.?\d*)",
-            r"(?:IMainmR|Main\s*MR)[^\n]*?(\d{6,8})",
-            r"(\d{6,8})\|?Units",
-            r"Total[^\d]*(\d{6,8})\s*(?:Units|kWh|KWh)?",
-            r"Total Units Consumed[^\d]*([\d,]+\.?\d*)",
-        ]
-        for pat in units_patterns:
-            m = re.search(pat, clean_text, re.IGNORECASE)
-            if m:
-                val = self.clean_amount(m.group(1))
-                if val > 0:
-                    total_units = val
-                    break
+        readings: list[dict[str, Any]] = []
+
+        tod_solar = re.search(r"Solar\s*\|\s*([\d,]+\.?\d*)", clean_text, re.IGNORECASE)
+        tod_peak = re.search(r"Peak\s*\|\s*([\d,]+\.?\d*)", clean_text, re.IGNORECASE)
+        tod_normal = re.search(r"Normal\s*\|\s*([\d,]+\.?\d*)", clean_text, re.IGNORECASE)
+
+        if tod_solar and tod_peak and tod_normal:
+            s_val = self.clean_amount(tod_solar.group(1))
+            p_val = self.clean_amount(tod_peak.group(1))
+            n_val = self.clean_amount(tod_normal.group(1))
+            total_units = round(s_val + p_val + n_val, 2)
+            readings.extend(
+                [
+                    {
+                        "meter_number": "Solar-TOD",
+                        "reading_type": "KWh (Solar)",
+                        "previous_reading": 0.0,
+                        "current_reading": s_val,
+                        "difference": s_val,
+                        "multiplying_factor": 1.0,
+                        "consumed_units": s_val,
+                    },
+                    {
+                        "meter_number": "Peak-TOD",
+                        "reading_type": "KWh (Peak)",
+                        "previous_reading": 0.0,
+                        "current_reading": p_val,
+                        "difference": p_val,
+                        "multiplying_factor": 1.0,
+                        "consumed_units": p_val,
+                    },
+                    {
+                        "meter_number": "Normal-TOD",
+                        "reading_type": "KWh (Normal)",
+                        "previous_reading": 0.0,
+                        "current_reading": n_val,
+                        "difference": n_val,
+                        "multiplying_factor": 1.0,
+                        "consumed_units": n_val,
+                    },
+                ]
+            )
+
+        if total_units == 0.0:
+            units_patterns = [
+                r"Billable Units in\s*KWh\s*[:\n\s]*([\d,]+\.?\d*)",
+                r"Net KWH Cons\.[^\n]*\n\s*([\d,]+\.?\d*)",
+                r"(?:IMainmR|Main\s*MR)[^\n]*?(\d{6,8})",
+                r"(\d{6,8})\|?Units",
+                r"Total Units Consumed[^\d]*([\d,]+\.?\d*)",
+                r"Total[^\d]*(\d{6,8})\s*(?:Units|kWh|KWh)",
+            ]
+            for pat in units_patterns:
+                m = re.search(pat, clean_text, re.IGNORECASE)
+                if m:
+                    val = self.clean_amount(m.group(1))
+                    if val > 0:
+                        total_units = val
+                        break
 
         # 7. Contract Demand & Power Factor
         contract_demand = None
@@ -274,11 +321,15 @@ class UniversalBillExtractor:
             contract_demand = self.clean_amount(cd_m.group(1)) or None
 
         power_factor = None
-        pf_m = re.search(r"(?:Bpf|Av\.\s*P\.F|Power Factor)[,\s:]*([\d\.]+)", clean_text, re.IGNORECASE)
+        pf_m = re.search(
+            r"(?:Average Power Factor|Power Factor|Av\.\s*P\.F|Bpf)[^\d]*?([\d\.]+)",
+            clean_text,
+            re.IGNORECASE,
+        )
         if pf_m:
             try:
                 val = float(pf_m.group(1))
-                if 0.0 <= val <= 1.0:
+                if 0.0 <= val <= 100.0:
                     power_factor = val
             except ValueError:
                 pass
@@ -289,32 +340,32 @@ class UniversalBillExtractor:
         if t_m:
             tariff_category = t_m.group(1).strip()
 
-        # 9. Meter Readings
-        readings: list[dict[str, Any]] = []
-        r_matches = re.findall(
-            r"(\d{5,8})\s+(\d)\s+(KWH|KVAH|KVA)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)",
-            clean_text,
-        )
-        for r in r_matches:
-            mtr_no, _, r_type, curr, prev, diff, mf, cons = r
-            curr_f = self.clean_amount(curr)
-            prev_f = self.clean_amount(prev)
-            diff_f = self.clean_amount(diff)
-            mf_f = self.clean_amount(mf) or 1.0
-            cons_f = self.clean_amount(cons)
-            readings.append(
-                {
-                    "meter_number": mtr_no,
-                    "reading_type": r_type,
-                    "previous_reading": prev_f,
-                    "current_reading": curr_f,
-                    "difference": diff_f,
-                    "multiplying_factor": mf_f,
-                    "consumed_units": cons_f,
-                }
+        # 9. Standard Meter Readings (if not already populated by TOD)
+        if not readings:
+            r_matches = re.findall(
+                r"(\d{5,8})\s+(\d)\s+(KWH|KVAH|KVA)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)",
+                clean_text,
             )
-            if r_type.upper() == "KWH" and total_units == 0.0:
-                total_units = cons_f
+            for r in r_matches:
+                mtr_no, _, r_type, curr, prev, diff, mf, cons = r
+                curr_f = self.clean_amount(curr)
+                prev_f = self.clean_amount(prev)
+                diff_f = self.clean_amount(diff)
+                mf_f = self.clean_amount(mf) or 1.0
+                cons_f = self.clean_amount(cons)
+                readings.append(
+                    {
+                        "meter_number": mtr_no,
+                        "reading_type": r_type,
+                        "previous_reading": prev_f,
+                        "current_reading": curr_f,
+                        "difference": diff_f,
+                        "multiplying_factor": mf_f,
+                        "consumed_units": cons_f,
+                    }
+                )
+                if r_type.upper() == "KWH" and total_units == 0.0:
+                    total_units = cons_f
 
         if not readings and total_units > 0:
             readings.append(

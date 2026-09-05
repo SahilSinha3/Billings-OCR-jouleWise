@@ -68,15 +68,16 @@ class MathVerificationEngine:
 
         power_factor_valid = True
         if power_factor is not None:
-            if not (self.min_pf <= power_factor <= self.max_pf):
+            effective_pf = power_factor / 100.0 if (10.0 <= power_factor <= 100.0) else power_factor
+            if not (self.min_pf <= effective_pf <= self.max_pf):
                 power_factor_valid = False
                 discrepancies.append(
                     DiscrepancyItem(
                         rule_name="POWER_FACTOR_RANGE",
                         field_name="power_factor",
                         expected_value=0.95,
-                        reported_value=round(power_factor, 3),
-                        discrepancy_delta=round(abs(power_factor - 0.95), 3),
+                        reported_value=round(effective_pf, 3),
+                        discrepancy_delta=round(abs(effective_pf - 0.95), 3),
                         severity="CRITICAL",
                     )
                 )
