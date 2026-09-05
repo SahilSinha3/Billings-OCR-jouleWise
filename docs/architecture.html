@@ -14,253 +14,250 @@
       <button class="nav-btn" onclick="showDiagram('lld')">Low-Level Design (LLD) — User Query Tracing</button>
     </div>
 
-    <!-- HLD Diagram -->
+    <!-- HLD Diagram Panel -->
     <div id="diagram-hld" class="diagram-panel active">
-      <div class="hld-canvas">
-        <!-- Tier 1: Client -->
-        <div class="hld-box">
-          <div class="box-header">
-            <span class="box-title">🌐 Client Tier — Next.js 16</span>
-            <span class="box-badge">PORT 3000</span>
-          </div>
-          <div class="box-desc">
-            Document Dropzone • Realtime Screen-Blur Loader Shield • Inline Memory PDF Viewer • 16-Parameter CSV Table
-          </div>
-        </div>
+      <div class="svg-canvas-wrapper">
+        <svg viewBox="0 0 1000 820" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Vector Arrowheads -->
+            <marker id="arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
+            </marker>
+            <marker id="arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#34d399" />
+            </marker>
+            <marker id="arrow-purple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#c084fc" />
+            </marker>
 
-        <div class="hld-arrow-row">
-          <span>⬇️ HTTP / REST (Multipart Upload & JSON Responses) ⬇️</span>
-        </div>
+            <!-- Gradients -->
+            <linearGradient id="grad-node" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#1e293b" />
+              <stop offset="100%" stop-color="#0f172a" />
+            </linearGradient>
+            <linearGradient id="grad-highlight" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.4" />
+              <stop offset="100%" stop-color="#0f172a" />
+            </linearGradient>
+          </defs>
 
-        <!-- Tier 2: API Gateway -->
-        <div class="hld-box">
-          <div class="box-header">
-            <span class="box-title">⚡ Ingress Gateway — FastAPI REST Engine</span>
-            <span class="box-badge">PORT 8000</span>
-          </div>
-          <div class="box-desc">
-            Stateless HTTP Router • In-Memory SHA-256 Hashing • DB Memory Binary Streaming • Consolidated CSV Exporter
-          </div>
-        </div>
+          <!-- 1. Client Presentation Tier -->
+          <rect x="250" y="30" width="500" height="70" rx="12" fill="url(#grad-highlight)" stroke="#38bdf8" stroke-width="1.5" />
+          <text x="270" y="58" class="svg-title">🌐 Client Tier: Next.js 16 Web Dashboard</text>
+          <text x="700" y="58" class="svg-tag">PORT 3000</text>
+          <text x="270" y="82" class="svg-subtitle">Dropzone Ingress • Screen-Blur Shield • Inline Memory PDF Viewer • CSV Export Table</text>
 
-        <div class="hld-arrow-row">
-          <span>⬇️ Cache Lookup & Relational Persistence ⬇️</span>
-        </div>
+          <!-- Arrow 1 -> 2 -->
+          <path d="M 500 100 L 500 152" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
+          <rect x="360" y="116" width="280" height="22" rx="4" fill="#090d16" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+          <text x="500" y="131" text-anchor="middle" class="svg-arrow-label">HTTP Multipart Upload & REST JSON</text>
 
-        <!-- Tier 3: Redis & Postgres -->
-        <div class="hld-split-row">
-          <div class="hld-box">
-            <div class="box-header">
-              <span class="box-title">⚡ Redis 7 In-Memory Cache</span>
-              <span class="box-badge">PORT 6379</span>
-            </div>
-            <div class="box-desc">
-              Sub-5ms SHA-256 Deduplication • Instant Hit on Repeated Bills • Zero Ingress Duplicate Overhead
-            </div>
-          </div>
+          <!-- 2. Ingress API Gateway -->
+          <rect x="250" y="155" width="500" height="70" rx="12" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1.5" />
+          <text x="270" y="183" class="svg-title">⚡ Ingress Gateway: FastAPI REST Engine</text>
+          <text x="700" y="183" class="svg-tag">PORT 8000</text>
+          <text x="270" y="207" class="svg-subtitle">Stateless HTTP Router • In-Memory SHA-256 Hashing • DB Memory Binary Streaming</text>
 
-          <div class="hld-box">
-            <div class="box-header">
-              <span class="box-title">🗄️ PostgreSQL 17 BYTEA Storage</span>
-              <span class="box-badge">PORT 5432</span>
-            </div>
-            <div class="box-desc">
-              Zero-Disk Storage: Raw PDF/image bytes stored directly in PostgreSQL database blobs • SQLAlchemy 2.0 ORM
-            </div>
-          </div>
-        </div>
+          <!-- Branching Arrows from Gateway -->
+          <!-- Left to Redis -->
+          <path d="M 330 225 L 200 282" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-emerald)" />
+          <!-- Right to Postgres -->
+          <path d="M 670 225 L 800 282" stroke="#c084fc" stroke-width="2" marker-end="url(#arrow-purple)" />
+          <!-- Center to Queue -->
+          <path d="M 500 225 L 500 282" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
 
-        <div class="hld-arrow-row">
-          <span>⬇️ Asynchronous Job Dispatch ⬇️</span>
-        </div>
+          <!-- 3A. Redis Cache -->
+          <rect x="50" y="285" width="280" height="75" rx="10" fill="url(#grad-node)" stroke="#34d399" stroke-width="1.5" />
+          <text x="65" y="312" class="svg-title">⚡ Redis 7 Cache</text>
+          <text x="260" y="312" class="svg-tag" style="fill: #34d399;">PORT 6379</text>
+          <text x="65" y="333" class="svg-subtitle">Sub-5ms SHA-256 Deduplication</text>
+          <text x="65" y="349" class="svg-code">key: bill:sha256:{hash}</text>
 
-        <!-- Tier 4: Queue -->
-        <div class="hld-box">
-          <div class="box-header">
-            <span class="box-title">📬 Background Dispatcher — asyncio.Queue</span>
-            <span class="box-badge">NON-BLOCKING</span>
-          </div>
-          <div class="box-desc">
-            Immediate HTTP 202 Accepted Response to Browser • Decouples Heavy Multi-Page OCR from Web Event Loop
-          </div>
-        </div>
+          <!-- 3B. In-Process Queue -->
+          <rect x="370" y="285" width="260" height="75" rx="10" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1.5" />
+          <text x="385" y="312" class="svg-title">📬 asyncio.Queue</text>
+          <text x="540" y="312" class="svg-tag">IN-PROCESS</text>
+          <text x="385" y="333" class="svg-subtitle">Asynchronous Task Dispatcher</text>
+          <text x="385" y="349" class="svg-code">Non-blocking HTTP 202</text>
 
-        <div class="hld-arrow-row">
-          <span>⬇️ Neural Processing & Audit Pipeline ⬇️</span>
-        </div>
+          <!-- 3C. PostgreSQL BYTEA -->
+          <rect x="670" y="285" width="280" height="75" rx="10" fill="url(#grad-node)" stroke="#c084fc" stroke-width="1.5" />
+          <text x="685" y="312" class="svg-title">🗄️ PostgreSQL 17</text>
+          <text x="880" y="312" class="svg-tag" style="fill: #c084fc;">PORT 5432</text>
+          <text x="685" y="333" class="svg-subtitle">Zero-Disk BYTEA Binary Storage</text>
+          <text x="685" y="349" class="svg-code">SQLAlchemy 2.0 ORM</text>
 
-        <!-- Tier 5: OCR & Verification -->
-        <div class="hld-split-row">
-          <div class="hld-box">
-            <div class="box-header">
-              <span class="box-title">🔍 Poppler 200 DPI + Tesseract 5</span>
-              <span class="box-badge">OCR ENGINE</span>
-            </div>
-            <div class="box-desc">
-              Parallel Multi-Threaded PDF Rasterization • 8-Bit Grayscale • Single-Pass Neural LSTM Engine (~2.2s)
-            </div>
-          </div>
+          <!-- Arrow Queue to Worker Box -->
+          <path d="M 500 360 L 500 412" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
+          <text x="500" y="390" text-anchor="middle" class="svg-arrow-label">Pulls Background Job (bill_id)</text>
 
-          <div class="hld-box">
-            <div class="box-header">
-              <span class="box-title">🛡️ Guardrails & Tariff Verification</span>
-              <span class="box-badge">MATH AUDIT</span>
-            </div>
-            <div class="box-desc">
-              Non-Bill Rejection Guardrail (Clean NULLs) • Multi-DISCOM Regex Heuristics • Meter Delta & PF Invariant Audits
-            </div>
-          </div>
-        </div>
+          <!-- 4. Outer Container: Processing & Verification Pipeline -->
+          <rect x="30" y="415" width="940" height="240" rx="14" fill="rgba(15, 23, 42, 0.4)" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1" stroke-dasharray="4 4" />
+          <text x="50" y="442" class="svg-title" style="fill: #38bdf8; font-size: 13px;">WORKER PIPELINE: NEURAL OCR, GUARDRAILS & TARIFF VERIFICATION</text>
+
+          <!-- Pipeline Nodes in Sequence -->
+          <!-- Box 1: Poppler -->
+          <rect x="50" y="465" width="165" height="85" rx="8" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1" />
+          <text x="60" y="492" class="svg-title" style="font-size: 13px;">Poppler 200 DPI</text>
+          <text x="60" y="514" class="svg-subtitle">4 Parallel Threads</text>
+          <text x="60" y="534" class="svg-code">8-Bit Grayscale</text>
+
+          <path d="M 215 507 L 235 507" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
+
+          <!-- Box 2: Tesseract -->
+          <rect x="238" y="465" width="165" height="85" rx="8" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1" />
+          <text x="248" y="492" class="svg-title" style="font-size: 13px;">Tesseract 5 LSTM</text>
+          <text x="248" y="514" class="svg-subtitle">Single-pass Neural OCR</text>
+          <text x="248" y="534" class="svg-code">--oem 1 (~2.2s)</text>
+
+          <path d="M 403 507 L 423 507" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
+
+          <!-- Box 3: Guardrail -->
+          <rect x="426" y="465" width="165" height="85" rx="8" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1" />
+          <text x="436" y="492" class="svg-title" style="font-size: 13px;">Non-Bill Guardrail</text>
+          <text x="436" y="514" class="svg-subtitle">EM6400 Manual Filter</text>
+          <text x="436" y="534" class="svg-code">Clean NULL Values</text>
+
+          <path d="M 591 507 L 611 507" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
+
+          <!-- Box 4: Parsers -->
+          <rect x="614" y="465" width="165" height="85" rx="8" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1" />
+          <text x="624" y="492" class="svg-title" style="font-size: 13px;">DISCOM Parsers</text>
+          <text x="624" y="514" class="svg-subtitle">APDCL, JVVNL, GESCOM</text>
+          <text x="624" y="534" class="svg-code">Regex Heuristics</text>
+
+          <path d="M 779 507 L 799 507" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
+
+          <!-- Box 5: Math Engine -->
+          <rect x="802" y="465" width="155" height="85" rx="8" fill="url(#grad-node)" stroke="#34d399" stroke-width="1.5" />
+          <text x="812" y="492" class="svg-title" style="font-size: 13px;">Math Verification</text>
+          <text x="812" y="514" class="svg-subtitle">Meter Delta Invariants</text>
+          <text x="812" y="534" class="svg-code" style="fill: #34d399;">(C-P)*MF = Units</text>
+
+          <!-- Bottom Return Bus -->
+          <path d="M 880 550 L 880 610 L 500 610" stroke="#34d399" stroke-width="2" />
+          <path d="M 500 610 L 500 690" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-emerald)" />
+          <text x="690" y="602" class="svg-arrow-label" style="fill: #34d399;">Commit Verified Status & Populate Redis Cache</text>
+
+          <!-- 5. Output Tier -->
+          <rect x="250" y="695" width="500" height="70" rx="12" fill="url(#grad-highlight)" stroke="#34d399" stroke-width="1.5" />
+          <text x="270" y="723" class="svg-title">🚀 Realtime Verified UI & Consolidated CSV Export</text>
+          <text x="270" y="747" class="svg-subtitle">Shield Unblurs • Audit Checkmarks • In-Memory PDF Stream • Export CSV</text>
+        </svg>
       </div>
     </div>
 
-    <!-- LLD Diagram: User Query Tracing -->
+    <!-- LLD User Query Tracing Diagram Panel -->
     <div id="diagram-lld" class="diagram-panel">
-      <div class="lld-canvas">
-        <!-- Step 1 -->
-        <div class="query-step">
-          <div class="step-num-col">
-            <span class="step-badge">Step 1</span>
-            <span class="step-time">User Action</span>
-          </div>
-          <div class="step-body">
-            <div class="step-head">User Drops Bill into Dropzone</div>
-            <div class="step-text">Next.js triggers loading shield, locks screen, and creates multipart <code>FormData</code>.</div>
-            <span class="step-code">frontend/app/page.tsx ➔ handleFileUpload()</span>
-          </div>
-        </div>
+      <div class="svg-canvas-wrapper">
+        <svg viewBox="0 0 1000 1260" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="lld-arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
+            </marker>
+            <marker id="lld-arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#34d399" />
+            </marker>
+            <marker id="lld-arrow-rose" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e" />
+            </marker>
+          </defs>
 
-        <div class="query-arrow">⬇️</div>
+          <!-- Step 1: User Upload -->
+          <rect x="260" y="25" width="480" height="60" rx="30" fill="#1e3a8a" stroke="#38bdf8" stroke-width="1.5" />
+          <text x="500" y="50" text-anchor="middle" class="svg-title">1. User Drops Electricity Bill into Dropzone</text>
+          <text x="500" y="68" text-anchor="middle" class="svg-subtitle">PDF or Image File • Input Element Auto-Reset Fix</text>
 
-        <!-- Step 2 -->
-        <div class="query-step">
-          <div class="step-num-col">
-            <span class="step-badge">Step 2</span>
-            <span class="step-time">&lt; 1ms</span>
-          </div>
-          <div class="step-body">
-            <div class="step-head">FastAPI Receives Stream & Hashes SHA-256</div>
-            <div class="step-text">Reads raw byte stream in memory and generates SHA-256 fingerprint without touching disk.</div>
-            <span class="step-code">backend/app/api/v1/endpoints/bills.py ➔ upload_bill()</span>
-          </div>
-        </div>
+          <path d="M 500 85 L 500 120" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
 
-        <div class="query-arrow">⬇️</div>
+          <!-- Step 2: Next.js handleFileUpload -->
+          <rect x="250" y="122" width="500" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+          <text x="270" y="148" class="svg-title">2. UI Triggers Loader Shield & Sends Multipart Stream</text>
+          <text x="270" y="168" class="svg-code">POST /api/v1/bills/upload (FormData multipart stream)</text>
 
-        <!-- Step 3: Cache Branch -->
-        <div class="query-step">
-          <div class="step-num-col">
-            <span class="step-badge">Step 3</span>
-            <span class="step-time">&lt; 5ms</span>
-          </div>
-          <div class="step-body">
-            <div class="step-head">Redis Deduplication Check: bill:sha256:{hash}</div>
-            <div class="step-text">Checks if document has already been audited in Redis cache.</div>
-            <span class="step-code">backend/app/services/cache/redis_client.py ➔ get_cached_bill()</span>
-          </div>
-        </div>
+          <path d="M 500 187 L 500 225" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
 
-        <!-- Branches -->
-        <div class="branch-wrap">
-          <div class="branch-box hit">
-            <strong>🟢 Cache Hit (&lt; 5ms):</strong><br />
-            Returns verified JSON immediately. UI displays notice: <em>"Document already parsed and verified"</em> and opens bill.
-          </div>
-          <div class="branch-box miss">
-            <strong>🟣 Cache Miss (&lt; 10ms):</strong><br />
-            Writes <code>Bill(file_data=bytes, status="PENDING")</code> to PostgreSQL 17 BYTEA blob. Continues to Step 4.
-          </div>
-        </div>
+          <!-- Step 3: FastAPI Ingress & Hashing -->
+          <rect x="250" y="227" width="500" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+          <text x="270" y="253" class="svg-title">3. FastAPI Reads Bytes & Computes SHA-256 Digest</text>
+          <text x="270" y="273" class="svg-code">hashlib.sha256(raw_bytes).hexdigest() [&lt; 1ms latency]</text>
 
-        <div class="query-arrow">⬇️</div>
+          <path d="M 500 292 L 500 330" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
 
-        <!-- Step 4 -->
-        <div class="query-step">
-          <div class="step-num-col">
-            <span class="step-badge">Step 4</span>
-            <span class="step-time">&lt; 1ms</span>
-          </div>
-          <div class="step-body">
-            <div class="step-head">Enqueue Bill ID & Return HTTP 202 Accepted</div>
-            <div class="step-text">Pushes <code>bill_id</code> to in-memory <code>asyncio.Queue</code>. Returns HTTP 202 so the browser never times out.</div>
-            <span class="step-code">backend/app/workers/queue.py ➔ task_queue.enqueue(bill_id)</span>
-          </div>
-        </div>
+          <!-- Step 4: Decision Diamond: Redis Cache -->
+          <polygon points="500,332 670,380 500,428 330,380" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
+          <text x="500" y="375" text-anchor="middle" class="svg-title" style="font-size: 13px;">Redis Cache Check</text>
+          <text x="500" y="392" text-anchor="middle" class="svg-code">bill:sha256:{hash} exists?</text>
 
-        <div class="query-arrow">⬇️</div>
+          <!-- Branch 4A: Cache Hit (Right) -->
+          <path d="M 670 380 L 760 380 L 760 412" stroke="#34d399" stroke-width="2" marker-end="url(#lld-arrow-emerald)" />
+          <text x="715" y="372" text-anchor="middle" class="svg-arrow-label" style="fill: #34d399;">HIT (&lt; 5ms)</text>
 
-        <!-- Step 5 -->
-        <div class="query-step">
-          <div class="step-num-col">
-            <span class="step-badge">Step 5</span>
-            <span class="step-time">~2.2s</span>
-          </div>
-          <div class="step-body">
-            <div class="step-head">Poppler 200 DPI Rasterization & Tesseract 5 Neural OCR</div>
-            <div class="step-text">Worker reads BYTEA from database. Poppler renders 200 DPI grayscale images; Tesseract extracts text tokens in one pass.</div>
-            <span class="step-code">backend/app/services/ocr/engine.py ➔ DocumentOCREngine.extract()</span>
-          </div>
-        </div>
+          <rect x="660" y="415" width="290" height="70" rx="10" fill="#064e3b" stroke="#34d399" stroke-width="1.5" />
+          <text x="675" y="442" class="svg-title" style="font-size: 13px; fill: #34d399;">Fast Return Cached JSON</text>
+          <text x="675" y="462" class="svg-subtitle">UI shows "Already Parsed" & opens record</text>
 
-        <div class="query-arrow">⬇️</div>
+          <!-- Branch 4B: Cache Miss (Down) -->
+          <path d="M 500 428 L 500 472" stroke="#c084fc" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
+          <text x="505" y="452" class="svg-arrow-label" style="fill: #c084fc;">MISS (Proceed)</text>
 
-        <!-- Step 6 -->
-        <div class="query-step">
-          <div class="step-num-col">
-            <span class="step-badge">Step 6</span>
-            <span class="step-time">&lt; 5ms</span>
-          </div>
-          <div class="step-body">
-            <div class="step-head">Non-Bill Guardrail Classifier</div>
-            <div class="step-text">Detects technical register maps (e.g. EM6400). Rejects with <code>REJECTED_NON_BILL</code> and sets clean <code>null</code> values.</div>
-            <span class="step-code">backend/app/services/ocr/universal_extractor.py ➔ validate_is_electricity_bill()</span>
-          </div>
-        </div>
+          <!-- Step 5: Zero-Disk DB Write -->
+          <rect x="250" y="475" width="500" height="65" rx="10" fill="#1e293b" stroke="#c084fc" stroke-width="1.5" />
+          <text x="270" y="501" class="svg-title">4. Zero-Disk PostgreSQL 17 BYTEA Binary Storage</text>
+          <text x="270" y="521" class="svg-code">Bill(file_data=bytes, status="PENDING") [&lt; 10ms]</text>
 
-        <div class="query-arrow">⬇️</div>
+          <path d="M 500 540 L 500 575" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
 
-        <!-- Step 7 -->
-        <div class="query-step">
-          <div class="step-num-col">
-            <span class="step-badge">Step 7</span>
-            <span class="step-time">&lt; 15ms</span>
-          </div>
-          <div class="step-body">
-            <div class="step-head">Multi-DISCOM Regex Pattern Extraction</div>
-            <div class="step-text">Extracts APDCL TOD registers (Solar, Peak, Normal), JVVNL Net Payable Amount preceding "Rupees Only", and GESCOM reference numbers.</div>
-            <span class="step-code">backend/app/services/ocr/universal_extractor.py ➔ extract_heuristic_fields()</span>
-          </div>
-        </div>
+          <!-- Step 6: Async Enqueue -->
+          <rect x="250" y="577" width="500" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+          <text x="270" y="603" class="svg-title">5. Enqueue Bill ID to asyncio.Queue & Return HTTP 202</text>
+          <text x="270" y="623" class="svg-code">task_queue.enqueue(bill_id) ➔ HTTP 202 Accepted to UI</text>
 
-        <div class="query-arrow">⬇️</div>
+          <path d="M 500 642 L 500 677" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
 
-        <!-- Step 8 -->
-        <div class="query-step">
-          <div class="step-num-col">
-            <span class="step-badge">Step 8</span>
-            <span class="step-time">&lt; 5ms</span>
-          </div>
-          <div class="step-body">
-            <div class="step-head">Deterministic Tariff Mathematical Audit</div>
-            <div class="step-text">Verifies meter delta consistency <code>((Curr - Prev) * MF = Units)</code>, validates Power Factor bounds (0.0 to 1.0), and marks <code>VERIFIED</code>.</div>
-            <span class="step-code">backend/app/services/verification/engine.py ➔ MathVerificationEngine.verify()</span>
-          </div>
-        </div>
+          <!-- Step 7: OCR Pipeline -->
+          <rect x="250" y="679" width="500" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+          <text x="270" y="705" class="svg-title">6. Poppler 200 DPI Rasterization & Tesseract 5 Neural OCR</text>
+          <text x="270" y="725" class="svg-code">4 Threads Grayscale ➔ Neural LSTM (--oem 1) [~2.2s latency]</text>
 
-        <div class="query-arrow">⬇️</div>
+          <path d="M 500 744 L 500 780" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
 
-        <!-- Step 9 -->
-        <div class="query-step">
-          <div class="step-num-col">
-            <span class="step-badge">Step 9</span>
-            <span class="step-time">&lt; 15ms</span>
-          </div>
-          <div class="step-body">
-            <div class="step-head">Realtime UI Render, In-Memory PDF View & CSV Export</div>
-            <div class="step-text">Frontend unblurs, renders audited values, streams PDF binary from DB memory, and compiles the consolidated CSV export.</div>
-            <span class="step-code">frontend/app/page.tsx + backend/app/api/v1/endpoints/bills.py ➔ export_all_bills_csv()</span>
-          </div>
-        </div>
+          <!-- Step 8: Decision Diamond: Guardrail -->
+          <polygon points="500,782 670,830 500,878 330,830" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
+          <text x="500" y="825" text-anchor="middle" class="svg-title" style="font-size: 13px;">Guardrail Check</text>
+          <text x="500" y="842" text-anchor="middle" class="svg-code">Is Valid Electricity Bill?</text>
+
+          <!-- Branch 8A: Rejection (Right) -->
+          <path d="M 670 830 L 760 830 L 760 862" stroke="#f43f5e" stroke-width="2" marker-end="url(#lld-arrow-rose)" />
+          <text x="715" y="822" text-anchor="middle" class="svg-arrow-label" style="fill: #f43f5e;">NO (Non-Bill)</text>
+
+          <rect x="660" y="865" width="290" height="70" rx="10" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5" />
+          <text x="675" y="892" class="svg-title" style="font-size: 13px; fill: #f43f5e;">REJECTED_NON_BILL</text>
+          <text x="675" y="912" class="svg-subtitle">Clean NULL values in DB (e.g. EM6400)</text>
+
+          <!-- Branch 8B: Valid Bill (Down) -->
+          <path d="M 500 878 L 500 922" stroke="#34d399" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
+          <text x="505" y="902" class="svg-arrow-label" style="fill: #34d399;">YES (Valid)</text>
+
+          <!-- Step 9: Multi-DISCOM Heuristics -->
+          <rect x="250" y="925" width="500" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+          <text x="270" y="951" class="svg-title">7. Multi-DISCOM Regex Pattern Extractor</text>
+          <text x="270" y="971" class="svg-code">APDCL TOD kWh, JVVNL amount, GESCOM dates & PF [&lt; 15ms]</text>
+
+          <path d="M 500 990 L 500 1025" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
+
+          <!-- Step 10: Tariff Math Audit -->
+          <rect x="250" y="1027" width="500" height="65" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="1.5" />
+          <text x="270" y="1053" class="svg-title">8. Tariff Mathematical Invariant Auditing</text>
+          <text x="270" y="1073" class="svg-code">Audit (Curr - Prev) * MF == Units & PF sanity [Status: VERIFIED]</text>
+
+          <path d="M 500 1092 L 500 1130" stroke="#34d399" stroke-width="2" marker-end="url(#lld-arrow-emerald)" />
+
+          <!-- Step 11: Realtime UI & Export Delivery -->
+          <rect x="220" y="1132" width="560" height="65" rx="32" fill="#064e3b" stroke="#34d399" stroke-width="2" />
+          <text x="500" y="1158" text-anchor="middle" class="svg-title" style="fill: #34d399;">9. UI Unblurs Shield ➔ Verified Metrics ➔ Memory PDF ➔ CSV Export</text>
+          <text x="500" y="1178" text-anchor="middle" class="svg-subtitle">Sub-second UI update • DB memory streaming via /file • Export CSV Ready</text>
+        </svg>
       </div>
     </div>
   </div>
