@@ -52,8 +52,8 @@ It replaces manual bill data entry with a deterministic OCR pipeline, database-b
 
 ### Core Design Decisions
 
-1. **Pure Tesseract OCR (No PyMuPDF Text Extraction)**
-   Many Indian utility bills (like GESCOM or scanned JVVNL bills) are raster scans with incomplete or broken embedded font tables. Relying on PyMuPDF text streams produces silent omissions. We render pages at 300 DPI via Poppler (`pdf2image`) and extract coordinates and text using pure Tesseract OCR. Multi-page conversion is capped to the first 5 pages to prevent stalls on accidental uploads of technical manuals.
+1. **High-Resolution Tesseract OCR Pipeline**
+   Many Indian utility bills (like GESCOM or scanned JVVNL bills) are raster scans or low-contrast dot-matrix prints. Document pages are rasterized at 300 DPI via Poppler (`pdf2image`) and parsed using Tesseract OCR for text and coordinate layout extraction. Multi-page conversion is capped to the first 5 pages to maintain high throughput and prevent stalls on accidental uploads of technical manuals.
 
 2. **Zero Local Disk Persistence (PostgreSQL 17 `BYTEA` Storage)**
    Bills are persisted directly into PostgreSQL as binary blobs (`LargeBinary` / `BYTEA`). No local temporary files or shared storage directories are touched. The backend provides a streaming endpoint (`GET /api/v1/bills/{id}/file`) so the frontend iframe renders the document directly from the database.
