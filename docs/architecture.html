@@ -3,274 +3,341 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture Diagrams (HLD & LLD)</title>
-  <link rel="stylesheet" href="architecture.css" />
+  <title>JouleWise Architecture Diagrams (HLD & LLD)</title>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <!-- Mermaid.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #090e17;
+      --card-bg: #0f172a;
+      --card-border: #1e293b;
+      --cyan: #38bdf8;
+      --cyan-glow: rgba(56, 189, 248, 0.25);
+      --emerald: #10b981;
+      --purple: #a855f7;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --white: #ffffff;
+      --slate-200: #e2e8f0;
+      --slate-400: #94a3b8;
+      --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-code: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--white);
+      font-family: var(--font-ui);
+      padding: 28px 20px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+
+    /* Switcher Navigation */
+    .diagram-nav {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .nav-btn {
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      color: #94a3b8;
+      padding: 14px 32px;
+      border-radius: 9999px;
+      font-family: var(--font-ui);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-btn:hover {
+      color: var(--white);
+      border-color: var(--cyan);
+      background: #243248;
+    }
+
+    .nav-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 25px var(--cyan-glow);
+    }
+
+    .diagram-panel {
+      display: none;
+    }
+
+    .diagram-panel.active {
+      display: block;
+      animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .diagram-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--card-border);
+      border-radius: 20px;
+      padding: 36px 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+    }
+
+    .mermaid {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .mermaid svg {
+      max-width: 100% !important;
+      height: auto !important;
+      font-family: var(--font-ui) !important;
+    }
+
+    /* Edge Path Line & Marker */
+    .edgePath .path {
+      stroke: #38bdf8 !important;
+      stroke-width: 2.8px !important;
+    }
+
+    .marker {
+      fill: #38bdf8 !important;
+      stroke: #38bdf8 !important;
+      transform: scale(1.2);
+    }
+
+    /* High-Legibility Capsule Edge Labels */
+    .edgeLabel {
+      background-color: #0b1120 !important;
+      color: #38bdf8 !important;
+      font-family: var(--font-code) !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      padding: 6px 14px !important;
+      border-radius: 8px !important;
+      border: 1.5px solid rgba(56, 189, 248, 0.4) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .edgeLabel span {
+      color: #38bdf8 !important;
+    }
+
+    /* Node Label Styling */
+    .node .label {
+      color: #ffffff !important;
+      font-family: var(--font-ui) !important;
+    }
+
+    .node rect,
+    .node polygon,
+    .node circle {
+      rx: 12px !important;
+      ry: 12px !important;
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)) !important;
+    }
+
+    /* Subgraph Clusters */
+    .cluster rect {
+      fill: rgba(15, 23, 42, 0.6) !important;
+      stroke: rgba(56, 189, 248, 0.3) !important;
+      stroke-width: 1.5px !important;
+      stroke-dasharray: 6 6 !important;
+      rx: 16px !important;
+    }
+
+    .cluster text {
+      fill: #38bdf8 !important;
+      font-family: var(--font-ui) !important;
+      font-size: 14px !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.05em !important;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <!-- Switcher -->
     <div class="diagram-nav">
-      <button class="nav-btn active" onclick="showDiagram('hld')">High-Level Design (HLD)</button>
-      <button class="nav-btn" onclick="showDiagram('lld')">Low-Level Design (LLD) — User Query Tracing</button>
+      <button class="nav-btn active" onclick="switchDiagram('hld')">
+        🏛️ 1. High-Level Design (HLD)
+      </button>
+      <button class="nav-btn" onclick="switchDiagram('lld')">
+        ⚡ 2. Low-Level Design (LLD) — User Query Tracing
+      </button>
     </div>
 
-    <!-- HLD Diagram Panel -->
-    <div id="diagram-hld" class="diagram-panel active">
-      <div class="svg-canvas-wrapper">
-        <svg viewBox="0 0 1000 820" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <!-- Vector Arrowheads -->
-            <marker id="arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
-            </marker>
-            <marker id="arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 1 L 8 5 L 0 9 z" fill="#34d399" />
-            </marker>
-            <marker id="arrow-purple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 1 L 8 5 L 0 9 z" fill="#c084fc" />
-            </marker>
+    <!-- HLD Diagram -->
+    <div id="panel-hld" class="diagram-panel active">
+      <div class="diagram-card">
+        <pre class="mermaid">
+flowchart TD
+    %% Professional Color Classes
+    classDef clientTier fill:#1e3a8a,stroke:#38bdf8,stroke-width:3px,color:#ffffff,font-weight:700,font-size:16px;
+    classDef gatewayTier fill:#1e293b,stroke:#38bdf8,stroke-width:3px,color:#ffffff,font-weight:700,font-size:16px;
+    classDef cacheTier fill:#064e3b,stroke:#10b981,stroke-width:3px,color:#ffffff,font-weight:700,font-size:15px;
+    classDef dbTier fill:#4c1d95,stroke:#c084fc,stroke-width:3px,color:#ffffff,font-weight:700,font-size:15px;
+    classDef queueTier fill:#1e293b,stroke:#f59e0b,stroke-width:3px,color:#ffffff,font-weight:700,font-size:15px;
+    classDef workerStep fill:#0f172a,stroke:#38bdf8,stroke-width:2.5px,color:#f8fafc,font-weight:600,font-size:14px;
+    classDef auditStep fill:#064e3b,stroke:#10b981,stroke-width:3px,color:#ffffff,font-weight:700,font-size:15px;
+    classDef outputTier fill:#064e3b,stroke:#10b981,stroke-width:3.5px,color:#ffffff,font-weight:800,font-size:16px;
 
-            <!-- Gradients -->
-            <linearGradient id="grad-node" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#1e293b" />
-              <stop offset="100%" stop-color="#0f172a" />
-            </linearGradient>
-            <linearGradient id="grad-highlight" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.4" />
-              <stop offset="100%" stop-color="#0f172a" />
-            </linearGradient>
-          </defs>
+    CLIENT["🌐 Presentation Tier: Next.js 16 Web Dashboard (Port 3000)<br/><span style='font-size:13px;font-weight:400;color:#93c5fd'>Dropzone Drag-and-Drop • Screen-Blur Shield • Inline Memory PDF Viewer • CSV Export Table</span>"]:::clientTier
 
-          <!-- 1. Client Presentation Tier -->
-          <rect x="250" y="30" width="500" height="70" rx="12" fill="url(#grad-highlight)" stroke="#38bdf8" stroke-width="1.5" />
-          <text x="270" y="58" class="svg-title">🌐 Client Tier: Next.js 16 Web Dashboard</text>
-          <text x="700" y="58" class="svg-tag">PORT 3000</text>
-          <text x="270" y="82" class="svg-subtitle">Dropzone Ingress • Screen-Blur Shield • Inline Memory PDF Viewer • CSV Export Table</text>
+    GATEWAY["⚡ Ingress Gateway: FastAPI Async REST API (Port 8000)<br/><span style='font-size:13px;font-weight:400;color:#94a3b8'>Stateless Async Routing • In-Memory SHA-256 Hashing • DB Memory Binary Streaming</span>"]:::gatewayTier
 
-          <!-- Arrow 1 -> 2 -->
-          <path d="M 500 100 L 500 152" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
-          <rect x="360" y="116" width="280" height="22" rx="4" fill="#090d16" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
-          <text x="500" y="131" text-anchor="middle" class="svg-arrow-label">HTTP Multipart Upload & REST JSON</text>
+    CLIENT -->|"HTTP Multipart Stream & REST JSON"| GATEWAY
 
-          <!-- 2. Ingress API Gateway -->
-          <rect x="250" y="155" width="500" height="70" rx="12" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1.5" />
-          <text x="270" y="183" class="svg-title">⚡ Ingress Gateway: FastAPI REST Engine</text>
-          <text x="700" y="183" class="svg-tag">PORT 8000</text>
-          <text x="270" y="207" class="svg-subtitle">Stateless HTTP Router • In-Memory SHA-256 Hashing • DB Memory Binary Streaming</text>
+    subgraph STORAGE ["Storage & In-Memory Deduplication Layer"]
+        REDIS["⚡ Redis 7 Cache (Port 6379)<br/><span style='font-size:12.5px;font-weight:400;color:#a7f3d0'>Sub-5ms SHA-256 Deduplication</span>"]:::cacheTier
+        POSTGRES["🗄️ PostgreSQL 17 Database (Port 5432)<br/><span style='font-size:12.5px;font-weight:400;color:#e9d5ff'>Zero-Disk BYTEA Binary Storage</span>"]:::dbTier
+    end
 
-          <!-- Branching Arrows from Gateway -->
-          <!-- Left to Redis -->
-          <path d="M 330 225 L 200 282" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-emerald)" />
-          <!-- Right to Postgres -->
-          <path d="M 670 225 L 800 282" stroke="#c084fc" stroke-width="2" marker-end="url(#arrow-purple)" />
-          <!-- Center to Queue -->
-          <path d="M 500 225 L 500 282" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
+    QUEUE["📬 In-Process asyncio.Queue<br/><span style='font-size:12.5px;font-weight:400;color:#fde68a'>Non-blocking HTTP 202 Dispatch</span>"]:::queueTier
 
-          <!-- 3A. Redis Cache -->
-          <rect x="50" y="285" width="280" height="75" rx="10" fill="url(#grad-node)" stroke="#34d399" stroke-width="1.5" />
-          <text x="65" y="312" class="svg-title">⚡ Redis 7 Cache</text>
-          <text x="260" y="312" class="svg-tag" style="fill: #34d399;">PORT 6379</text>
-          <text x="65" y="333" class="svg-subtitle">Sub-5ms SHA-256 Deduplication</text>
-          <text x="65" y="349" class="svg-code">key: bill:sha256:{hash}</text>
+    GATEWAY -->|"1. Sub-5ms Cache Lookup"| REDIS
+    GATEWAY -->|"2. Zero-Disk Binary Write"| POSTGRES
+    GATEWAY -->|"3. Enqueue bill_id"| QUEUE
 
-          <!-- 3B. In-Process Queue -->
-          <rect x="370" y="285" width="260" height="75" rx="10" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1.5" />
-          <text x="385" y="312" class="svg-title">📬 asyncio.Queue</text>
-          <text x="540" y="312" class="svg-tag">IN-PROCESS</text>
-          <text x="385" y="333" class="svg-subtitle">Asynchronous Task Dispatcher</text>
-          <text x="385" y="349" class="svg-code">Non-blocking HTTP 202</text>
+    subgraph WORKER ["Worker Processing & Deterministic Verification Pipeline"]
+        direction LR
+        POPPLER["Poppler 200 DPI<br/><span style='font-size:12px;color:#94a3b8'>4 Worker Threads</span>"]:::workerStep
+        TESSERACT["Tesseract 5 LSTM<br/><span style='font-size:12px;color:#94a3b8'>Neural OCR (~2.2s)</span>"]:::workerStep
+        GUARDRAIL["Non-Bill Filter<br/><span style='font-size:12px;color:#94a3b8'>Rejects EM6400</span>"]:::workerStep
+        PARSER["DISCOM Parsers<br/><span style='font-size:12px;color:#94a3b8'>APDCL / JVVNL / GESCOM</span>"]:::workerStep
+        MATH["Tariff Math Audit<br/><span style='font-size:12px;color:#a7f3d0'>Meter Delta Rules</span>"]:::auditStep
 
-          <!-- 3C. PostgreSQL BYTEA -->
-          <rect x="670" y="285" width="280" height="75" rx="10" fill="url(#grad-node)" stroke="#c084fc" stroke-width="1.5" />
-          <text x="685" y="312" class="svg-title">🗄️ PostgreSQL 17</text>
-          <text x="880" y="312" class="svg-tag" style="fill: #c084fc;">PORT 5432</text>
-          <text x="685" y="333" class="svg-subtitle">Zero-Disk BYTEA Binary Storage</text>
-          <text x="685" y="349" class="svg-code">SQLAlchemy 2.0 ORM</text>
+        POPPLER --> TESSERACT --> GUARDRAIL --> PARSER --> MATH
+    end
 
-          <!-- Arrow Queue to Worker Box -->
-          <path d="M 500 360 L 500 412" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
-          <text x="500" y="390" text-anchor="middle" class="svg-arrow-label">Pulls Background Job (bill_id)</text>
+    QUEUE -->|"Pulls Background Task"| POPPLER
 
-          <!-- 4. Outer Container: Processing & Verification Pipeline -->
-          <rect x="30" y="415" width="940" height="240" rx="14" fill="rgba(15, 23, 42, 0.4)" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1" stroke-dasharray="4 4" />
-          <text x="50" y="442" class="svg-title" style="fill: #38bdf8; font-size: 13px;">WORKER PIPELINE: NEURAL OCR, GUARDRAILS & TARIFF VERIFICATION</text>
+    OUTPUT["🚀 Realtime Verified UI Dashboard & Consolidated CSV Export<br/><span style='font-size:13px;font-weight:400;color:#a7f3d0'>Screen Unblurs • Audit Checkmarks • In-Memory PDF Stream • 1-Click CSV Download</span>"]:::outputTier
 
-          <!-- Pipeline Nodes in Sequence -->
-          <!-- Box 1: Poppler -->
-          <rect x="50" y="465" width="165" height="85" rx="8" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1" />
-          <text x="60" y="492" class="svg-title" style="font-size: 13px;">Poppler 200 DPI</text>
-          <text x="60" y="514" class="svg-subtitle">4 Parallel Threads</text>
-          <text x="60" y="534" class="svg-code">8-Bit Grayscale</text>
-
-          <path d="M 215 507 L 235 507" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
-
-          <!-- Box 2: Tesseract -->
-          <rect x="238" y="465" width="165" height="85" rx="8" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1" />
-          <text x="248" y="492" class="svg-title" style="font-size: 13px;">Tesseract 5 LSTM</text>
-          <text x="248" y="514" class="svg-subtitle">Single-pass Neural OCR</text>
-          <text x="248" y="534" class="svg-code">--oem 1 (~2.2s)</text>
-
-          <path d="M 403 507 L 423 507" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
-
-          <!-- Box 3: Guardrail -->
-          <rect x="426" y="465" width="165" height="85" rx="8" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1" />
-          <text x="436" y="492" class="svg-title" style="font-size: 13px;">Non-Bill Guardrail</text>
-          <text x="436" y="514" class="svg-subtitle">EM6400 Manual Filter</text>
-          <text x="436" y="534" class="svg-code">Clean NULL Values</text>
-
-          <path d="M 591 507 L 611 507" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
-
-          <!-- Box 4: Parsers -->
-          <rect x="614" y="465" width="165" height="85" rx="8" fill="url(#grad-node)" stroke="#38bdf8" stroke-width="1" />
-          <text x="624" y="492" class="svg-title" style="font-size: 13px;">DISCOM Parsers</text>
-          <text x="624" y="514" class="svg-subtitle">APDCL, JVVNL, GESCOM</text>
-          <text x="624" y="534" class="svg-code">Regex Heuristics</text>
-
-          <path d="M 779 507 L 799 507" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-cyan)" />
-
-          <!-- Box 5: Math Engine -->
-          <rect x="802" y="465" width="155" height="85" rx="8" fill="url(#grad-node)" stroke="#34d399" stroke-width="1.5" />
-          <text x="812" y="492" class="svg-title" style="font-size: 13px;">Math Verification</text>
-          <text x="812" y="514" class="svg-subtitle">Meter Delta Invariants</text>
-          <text x="812" y="534" class="svg-code" style="fill: #34d399;">(C-P)*MF = Units</text>
-
-          <!-- Bottom Return Bus -->
-          <path d="M 880 550 L 880 610 L 500 610" stroke="#34d399" stroke-width="2" />
-          <path d="M 500 610 L 500 690" stroke="#34d399" stroke-width="2" marker-end="url(#arrow-emerald)" />
-          <text x="690" y="602" class="svg-arrow-label" style="fill: #34d399;">Commit Verified Status & Populate Redis Cache</text>
-
-          <!-- 5. Output Tier -->
-          <rect x="250" y="695" width="500" height="70" rx="12" fill="url(#grad-highlight)" stroke="#34d399" stroke-width="1.5" />
-          <text x="270" y="723" class="svg-title">🚀 Realtime Verified UI & Consolidated CSV Export</text>
-          <text x="270" y="747" class="svg-subtitle">Shield Unblurs • Audit Checkmarks • In-Memory PDF Stream • Export CSV</text>
-        </svg>
+    MATH -->|"Commit VERIFIED & Cache JSON"| POSTGRES
+    MATH -->|"Write-through"| REDIS
+    POSTGRES -.->|"Realtime Poll / Memory Stream"| OUTPUT
+    OUTPUT -.->|"Verified Results Render"| CLIENT
+        </pre>
       </div>
     </div>
 
-    <!-- LLD User Query Tracing Diagram Panel -->
-    <div id="diagram-lld" class="diagram-panel">
-      <div class="svg-canvas-wrapper">
-        <svg viewBox="0 0 1000 1260" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <marker id="lld-arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
-            </marker>
-            <marker id="lld-arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 1 L 8 5 L 0 9 z" fill="#34d399" />
-            </marker>
-            <marker id="lld-arrow-rose" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e" />
-            </marker>
-          </defs>
+    <!-- LLD User Query Tracing Diagram -->
+    <div id="panel-lld" class="diagram-panel">
+      <div class="diagram-card">
+        <pre class="mermaid">
+flowchart TD
+    %% Professional Color Classes for LLD
+    classDef startNode fill:#1e3a8a,stroke:#38bdf8,stroke-width:3px,color:#ffffff,font-weight:800,font-size:16px;
+    classDef processNode fill:#1e293b,stroke:#38bdf8,stroke-width:2.5px,color:#ffffff,font-weight:600,font-size:15px;
+    classDef decisionNode fill:#0f172a,stroke:#f59e0b,stroke-width:3px,color:#f59e0b,font-weight:800,font-size:15px;
+    classDef cacheHitNode fill:#064e3b,stroke:#10b981,stroke-width:3px,color:#ffffff,font-weight:700,font-size:14px;
+    classDef rejectNode fill:#4c0519,stroke:#f43f5e,stroke-width:3px,color:#ffffff,font-weight:700,font-size:14px;
+    classDef endNode fill:#064e3b,stroke:#10b981,stroke-width:3.5px,color:#ffffff,font-weight:800,font-size:16px;
 
-          <!-- Step 1: User Upload -->
-          <rect x="260" y="25" width="480" height="60" rx="30" fill="#1e3a8a" stroke="#38bdf8" stroke-width="1.5" />
-          <text x="500" y="50" text-anchor="middle" class="svg-title">1. User Drops Electricity Bill into Dropzone</text>
-          <text x="500" y="68" text-anchor="middle" class="svg-subtitle">PDF or Image File • Input Element Auto-Reset Fix</text>
+    S1(["1. User Drops Electricity Bill in Next.js Dropzone"]):::startNode
 
-          <path d="M 500 85 L 500 120" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
+    S2["2. UI Triggers Loader Shield & Sends Multipart Stream<br/><span style='font-family:monospace;font-size:13px;color:#38bdf8'>POST /api/v1/bills/upload (FormData multipart stream)</span>"]:::processNode
 
-          <!-- Step 2: Next.js handleFileUpload -->
-          <rect x="250" y="122" width="500" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-          <text x="270" y="148" class="svg-title">2. UI Triggers Loader Shield & Sends Multipart Stream</text>
-          <text x="270" y="168" class="svg-code">POST /api/v1/bills/upload (FormData multipart stream)</text>
+    S3["3. FastAPI Receives Stream & Computes SHA-256 Digest<br/><span style='font-family:monospace;font-size:13px;color:#f59e0b'>hashlib.sha256(raw_bytes).hexdigest() [< 1ms latency]</span>"]:::processNode
 
-          <path d="M 500 187 L 500 225" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
+    D1{"4. Redis Cache Check<br/>bill:sha256:{hash} exists?"}:::decisionNode
 
-          <!-- Step 3: FastAPI Ingress & Hashing -->
-          <rect x="250" y="227" width="500" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-          <text x="270" y="253" class="svg-title">3. FastAPI Reads Bytes & Computes SHA-256 Digest</text>
-          <text x="270" y="273" class="svg-code">hashlib.sha256(raw_bytes).hexdigest() [&lt; 1ms latency]</text>
+    BRANCH_HIT["🟢 Cache Hit (&lt; 5ms)<br/><b>Return Cached Verified JSON</b><br/><span style='font-size:12.5px;color:#a7f3d0'>UI Toast: 'Already Parsed' & Opens Bill</span>"]:::cacheHitNode
 
-          <path d="M 500 292 L 500 330" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
+    S4["5. Zero-Disk PostgreSQL 17 BYTEA Storage<br/><span style='font-family:monospace;font-size:13px;color:#c084fc'>Bill(file_data=raw_bytes, status='PENDING') [< 10ms]</span>"]:::processNode
 
-          <!-- Step 4: Decision Diamond: Redis Cache -->
-          <polygon points="500,332 670,380 500,428 330,380" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
-          <text x="500" y="375" text-anchor="middle" class="svg-title" style="font-size: 13px;">Redis Cache Check</text>
-          <text x="500" y="392" text-anchor="middle" class="svg-code">bill:sha256:{hash} exists?</text>
+    S5["6. Enqueue Bill ID into asyncio.Queue<br/><span style='font-family:monospace;font-size:13px;color:#38bdf8'>task_queue.enqueue(bill_id) ➔ HTTP 202 Accepted to UI</span>"]:::processNode
 
-          <!-- Branch 4A: Cache Hit (Right) -->
-          <path d="M 670 380 L 760 380 L 760 412" stroke="#34d399" stroke-width="2" marker-end="url(#lld-arrow-emerald)" />
-          <text x="715" y="372" text-anchor="middle" class="svg-arrow-label" style="fill: #34d399;">HIT (&lt; 5ms)</text>
+    S6["7. Poppler 200 DPI & Tesseract 5 Neural OCR<br/><span style='font-family:monospace;font-size:13px;color:#38bdf8'>4 Threads Grayscale ➔ Single-Pass Neural LSTM [~2.2s]</span>"]:::processNode
 
-          <rect x="660" y="415" width="290" height="70" rx="10" fill="#064e3b" stroke="#34d399" stroke-width="1.5" />
-          <text x="675" y="442" class="svg-title" style="font-size: 13px; fill: #34d399;">Fast Return Cached JSON</text>
-          <text x="675" y="462" class="svg-subtitle">UI shows "Already Parsed" & opens record</text>
+    D2{"8. Guardrail Check<br/>Is Valid Electricity Bill?"}:::decisionNode
 
-          <!-- Branch 4B: Cache Miss (Down) -->
-          <path d="M 500 428 L 500 472" stroke="#c084fc" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
-          <text x="505" y="452" class="svg-arrow-label" style="fill: #c084fc;">MISS (Proceed)</text>
+    BRANCH_REJECT["🔴 Non-Bill Technical Document<br/><b>status = REJECTED_NON_BILL</b><br/><span style='font-size:12.5px;color:#fecdd3'>Store Clean NULLs in DB (e.g. EM6400 Manual)</span>"]:::rejectNode
 
-          <!-- Step 5: Zero-Disk DB Write -->
-          <rect x="250" y="475" width="500" height="65" rx="10" fill="#1e293b" stroke="#c084fc" stroke-width="1.5" />
-          <text x="270" y="501" class="svg-title">4. Zero-Disk PostgreSQL 17 BYTEA Binary Storage</text>
-          <text x="270" y="521" class="svg-code">Bill(file_data=bytes, status="PENDING") [&lt; 10ms]</text>
+    S7["9. Multi-DISCOM Heuristic Regex Extraction<br/><span style='font-family:monospace;font-size:13px;color:#38bdf8'>APDCL TOD kWh, JVVNL amount, GESCOM dates & PF [< 15ms]</span>"]:::processNode
 
-          <path d="M 500 540 L 500 575" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
+    S8["10. Deterministic Tariff Mathematical Audit<br/><span style='font-family:monospace;font-size:13px;color:#10b981'>Audit (Curr - Prev) * MF == Consumed & PF bounds [VERIFIED]</span>"]:::cacheHitNode
 
-          <!-- Step 6: Async Enqueue -->
-          <rect x="250" y="577" width="500" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-          <text x="270" y="603" class="svg-title">5. Enqueue Bill ID to asyncio.Queue & Return HTTP 202</text>
-          <text x="270" y="623" class="svg-code">task_queue.enqueue(bill_id) ➔ HTTP 202 Accepted to UI</text>
+    S9(["11. UI Unblurs Shield ➔ Displays Verified Metrics ➔ In-Memory PDF ➔ Export CSV"]):::endNode
 
-          <path d="M 500 642 L 500 677" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
+    S1 --> S2
+    S2 --> S3
+    S3 --> D1
 
-          <!-- Step 7: OCR Pipeline -->
-          <rect x="250" y="679" width="500" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-          <text x="270" y="705" class="svg-title">6. Poppler 200 DPI Rasterization & Tesseract 5 Neural OCR</text>
-          <text x="270" y="725" class="svg-code">4 Threads Grayscale ➔ Neural LSTM (--oem 1) [~2.2s latency]</text>
+    D1 -->|"YES (Cache Hit < 5ms)"| BRANCH_HIT
+    D1 -->|"NO (Cache Miss)"| S4
 
-          <path d="M 500 744 L 500 780" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
+    S4 --> S5
+    S5 --> S6
+    S6 --> D2
 
-          <!-- Step 8: Decision Diamond: Guardrail -->
-          <polygon points="500,782 670,830 500,878 330,830" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
-          <text x="500" y="825" text-anchor="middle" class="svg-title" style="font-size: 13px;">Guardrail Check</text>
-          <text x="500" y="842" text-anchor="middle" class="svg-code">Is Valid Electricity Bill?</text>
+    D2 -->|"NO (Technical Doc)"| BRANCH_REJECT
+    D2 -->|"YES (Valid Bill)"| S7
 
-          <!-- Branch 8A: Rejection (Right) -->
-          <path d="M 670 830 L 760 830 L 760 862" stroke="#f43f5e" stroke-width="2" marker-end="url(#lld-arrow-rose)" />
-          <text x="715" y="822" text-anchor="middle" class="svg-arrow-label" style="fill: #f43f5e;">NO (Non-Bill)</text>
-
-          <rect x="660" y="865" width="290" height="70" rx="10" fill="#4c0519" stroke="#f43f5e" stroke-width="1.5" />
-          <text x="675" y="892" class="svg-title" style="font-size: 13px; fill: #f43f5e;">REJECTED_NON_BILL</text>
-          <text x="675" y="912" class="svg-subtitle">Clean NULL values in DB (e.g. EM6400)</text>
-
-          <!-- Branch 8B: Valid Bill (Down) -->
-          <path d="M 500 878 L 500 922" stroke="#34d399" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
-          <text x="505" y="902" class="svg-arrow-label" style="fill: #34d399;">YES (Valid)</text>
-
-          <!-- Step 9: Multi-DISCOM Heuristics -->
-          <rect x="250" y="925" width="500" height="65" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-          <text x="270" y="951" class="svg-title">7. Multi-DISCOM Regex Pattern Extractor</text>
-          <text x="270" y="971" class="svg-code">APDCL TOD kWh, JVVNL amount, GESCOM dates & PF [&lt; 15ms]</text>
-
-          <path d="M 500 990 L 500 1025" stroke="#38bdf8" stroke-width="2" marker-end="url(#lld-arrow-cyan)" />
-
-          <!-- Step 10: Tariff Math Audit -->
-          <rect x="250" y="1027" width="500" height="65" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="1.5" />
-          <text x="270" y="1053" class="svg-title">8. Tariff Mathematical Invariant Auditing</text>
-          <text x="270" y="1073" class="svg-code">Audit (Curr - Prev) * MF == Units & PF sanity [Status: VERIFIED]</text>
-
-          <path d="M 500 1092 L 500 1130" stroke="#34d399" stroke-width="2" marker-end="url(#lld-arrow-emerald)" />
-
-          <!-- Step 11: Realtime UI & Export Delivery -->
-          <rect x="220" y="1132" width="560" height="65" rx="32" fill="#064e3b" stroke="#34d399" stroke-width="2" />
-          <text x="500" y="1158" text-anchor="middle" class="svg-title" style="fill: #34d399;">9. UI Unblurs Shield ➔ Verified Metrics ➔ Memory PDF ➔ CSV Export</text>
-          <text x="500" y="1178" text-anchor="middle" class="svg-subtitle">Sub-second UI update • DB memory streaming via /file • Export CSV Ready</text>
-        </svg>
+    S7 --> S8
+    S8 --> S9
+        </pre>
       </div>
     </div>
   </div>
 
   <script>
-    function showDiagram(type) {
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.diagram-panel').forEach(panel => panel.classList.remove('active'));
+    // Initialize Mermaid with large readable typography
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        darkMode: true,
+        background: '#0f172a',
+        primaryColor: '#1e3a8a',
+        primaryTextColor: '#ffffff',
+        primaryBorderColor: '#38bdf8',
+        lineColor: '#38bdf8',
+        secondaryColor: '#064e3b',
+        tertiaryColor: '#1e293b',
+        fontFamily: '"Inter", -apple-system, sans-serif',
+        fontSize: '16px'
+      }
+    });
+
+    function switchDiagram(type) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.diagram-panel').forEach(p => p.classList.remove('active'));
 
       const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick').includes(type));
       if (activeBtn) activeBtn.classList.add('active');
 
-      const target = document.getElementById('diagram-' + type);
+      const target = document.getElementById('panel-' + type);
       if (target) target.classList.add('active');
     }
   </script>
