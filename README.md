@@ -52,23 +52,27 @@ It replaces manual bill data entry with a deterministic OCR pipeline, database-b
 
 ### Core Design Decisions
 
-1. **High-Resolution Tesseract OCR Pipeline**
-   Many Indian utility bills (like GESCOM or scanned JVVNL bills) are raster scans or low-contrast dot-matrix prints. Document pages are rasterized at 300 DPI via Poppler (`pdf2image`) and parsed using Tesseract OCR for text and coordinate layout extraction. Multi-page conversion is capped to the first 5 pages to maintain high throughput and prevent stalls on accidental uploads of technical manuals.
+1. **High-Speed Decoupled Tesseract OCR Pipeline (~2.2s)**
+   Document pages are rasterized at 200 DPI using multi-threaded Poppler (`thread_count=4`) and converted to 8-bit grayscale. Text lines and token bounding boxes are reconstructed from a single neural Tesseract LSTM pass (`--oem 1`). Multi-page conversion is capped to the first 5 pages to maintain high throughput. OCR text extraction, field parsing, and deterministic math audit complete in ~2.2 seconds.
 
-2. **Zero Local Disk Persistence (PostgreSQL 17 `BYTEA` Storage)**
+2. **Progressive AI Summarization with Deterministic Fallbacks**
+   Summary generation is decoupled from the core OCR and audit pipeline. While pure Tesseract OCR and mathematical audit yield verified metrics immediately, plain-English summaries are synthesized asynchronously via Gemini 2.5 Flash or local Ollama (Llama 3.2). If offline or unconfigured, an instant deterministic summary is generated so extraction never blocks.
+
+3. **Zero Local Disk Persistence (PostgreSQL 17 `BYTEA` Storage)**
    Bills are persisted directly into PostgreSQL as binary blobs (`LargeBinary` / `BYTEA`). No local temporary files or shared storage directories are touched. The backend provides a streaming endpoint (`GET /api/v1/bills/{id}/file`) so the frontend iframe renders the document directly from the database.
 
-3. **Redis Deduplication & Caching**
+4. **Redis Deduplication & Caching**
    Uploaded documents are hashed via SHA-256 upon arrival. If an identical file was already processed, the verified data payload is returned directly from local Redis in under 5ms without triggering re-OCR.
 
-4. **Document Classification Guardrail**
-   Utility bill pipelines frequently receive non-bill attachments (register map sheets, meter datasheets, user manuals). The extractor runs a multi-signal keyword and pattern density classifier. Documents like Schneider EM6400 register maps are flagged and rejected immediately with `REJECTED_NON_BILL` before mathematical reconciliation runs.
+5. **Screen-Blurring Global State Loader & CSS Modules**
+   The frontend is built using pure **CSS Modules** (`page.module.css`) with Apple-inspired monochrome light-mode styling (`#fafafa` background and crisp `#09090b` typography). While documents are processing, a full-screen backdrop-blur shield obscures the workspace with an animated 5-phase ticker, preventing unverified or placeholder data from rendering until extraction completes.
 
-5. **Graceful Degradation for AI Summarization**
-   JouleWise does not depend on external LLM availability. If neither Gemini 2.5 Flash nor local Ollama (`llama3.2`) is configured or reachable:
-   - Full OCR extraction and mathematical reconciliation continue normally.
-   - All fields (Consumer Name, Account Number, Due Date, Units, Net Amount, Meter Readings) are populated via deterministic heuristics.
-   - Only the plain-English summary is left empty (`null`).
+6. **Full CSV Data Export & Download**
+   - **All Bills**: `GET /api/v1/bills/export/csv` exports the entire repository of bills with consumption metrics and audit statuses.
+   - **Individual Bill**: `GET /api/v1/bills/{id}/export/csv` exports a structured audit report including register breakdowns and line items.
+
+7. **Document Classification Guardrail**
+   Utility bill pipelines frequently receive non-bill attachments (register map sheets, meter datasheets, user manuals). The extractor runs a multi-signal keyword and pattern density classifier. Documents like Schneider EM6400 register maps are flagged and rejected immediately with `REJECTED_NON_BILL` before mathematical reconciliation runs.
 
 ---
 

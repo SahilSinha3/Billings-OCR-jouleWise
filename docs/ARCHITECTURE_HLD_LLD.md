@@ -38,17 +38,19 @@ flowchart TD
     subgraph Pipeline ["Processing Pipeline"]
         C -->|Cache Miss| E[(PostgreSQL 17 - BYTEA Blob)]
         E --> F[Async Queue Worker]
-        F --> H[Poppler 300 DPI Rasterizer]
-        H --> I[Pure Tesseract OCR]
-        I --> J[Universal Bill Extractor]
+        F --> H[Poppler 200 DPI Rasterizer 4 Threads]
+        H --> I[Pure Tesseract Neural OCR OEM 1]
+        I --> J[Universal Bill Extractor parse_fast]
         J --> K[Deterministic Math Audit Engine]
         K --> E
+        K -.->|Async Background Task| M[Progressive LLM Summarizer]
+        M -.-> E
     end
 
     G -->|Stream Binary| E
 ```
 
-### 1.3 Request Lifecycle
+### 1.3 Request Lifecycle & Staged Pipeline
 
 1. **Ingress & Hashing**:
    - Client sends multipart file payload to `/api/v1/bills/upload` or `/api/v1/bills/bulk-upload`.
@@ -59,22 +61,23 @@ flowchart TD
 3. **Database Blob Persistence**:
    - If not in cache, a new `Bill` record is inserted with `file_data = contents` directly into PostgreSQL.
    - The record status is set to `QUEUED`, and the generated UUID is placed on `asyncio.Queue`.
-4. **Rasterization & OCR**:
+4. **High-Speed Rasterization & Single-Pass Neural OCR (~2.2s)**:
    - The worker reads `bill.file_data` from PostgreSQL.
-   - For PDF documents, Poppler (`pdf2image.convert_from_bytes`) renders pages at 300 DPI (capped at 5 pages).
-   - Tesseract OCR extracts token coordinates, confidence scores, and layout text.
+   - For PDF documents, Poppler (`pdf2image.convert_from_bytes`) renders pages at 200 DPI with 4 parallel worker threads and converts images to 8-bit grayscale.
+   - Tesseract OCR extracts token coordinates, confidence scores, and layout text in a single pass (`--oem 1`).
 5. **Document Classification Guardrail**:
    - Before parsing, the text is evaluated against negative manual/datasheet signatures and positive electricity billing signals.
    - Non-bill technical documents are rejected with `REJECTED_NON_BILL`.
-6. **Heuristic Parsing & LLM Augmentation**:
-   - Multi-anchor regex heuristics extract Consumer Name, Account Number, Due Date, Active Energy Units, Net Amount Due, and Meter Registers.
-   - If Gemini or Ollama is available, a 2-sentence plain-English summary is generated and any unparsed attributes are populated.
-   - If neither LLM is available, extraction completes cleanly with `bill_summary = null`.
-7. **Mathematical Reconciliation**:
-   - The audit engine validates meter register differences against billed active energy, checks line items, and tests power factor sanity.
-   - The status is set to `VERIFIED` if clean, or `FLAGGED_FOR_REVIEW` if anomalies are detected.
-8. **Cache & Persistence**:
-   - The final verified payload is committed to PostgreSQL and written to Redis with a 24-hour TTL.
+6. **Fast Heuristic Parsing & Mathematical Audit**:
+   - Multi-anchor regex heuristics extract Consumer Name, Account Number, Due Date, Active Energy Units, Net Amount Due, and Meter Registers in < 50ms.
+   - The mathematical audit engine verifies consumption multipliers, power factor sanity, and financial sums.
+   - The bill is committed with status `VERIFIED` and cached in Redis. The frontend unblurs immediately.
+7. **Decoupled Progressive AI Summarization**:
+   - An asynchronous background task invokes Gemini 2.5 Flash or local Ollama (Llama 3.2).
+   - If available, the plain-English summary is enriched in the background. If offline, a deterministic summary is constructed immediately without delaying the user.
+8. **CSV Exports**:
+   - `GET /api/v1/bills/export/csv` generates structured CSV reports for the entire bill collection.
+   - `GET /api/v1/bills/{id}/export/csv` generates detailed CSV audit reports with register breakdowns.
 
 ---
 
