@@ -354,7 +354,12 @@ export default function JouleWiseDashboard() {
             <div className={styles.brandLogo}>
               <Zap style={{ width: 18, height: 18, fill: "#ffffff" }} />
             </div>
-            <span className={styles.brandName}>JouleWise</span>
+            <div>
+              <span className={styles.brandName}>JouleWise</span>
+              <p className={styles.brandSubtitle}>
+                Tesseract Neural Engine • PostgreSQL BYTEA Storage • Redis Cache
+              </p>
+            </div>
           </div>
 
           <div className={styles.headerActions}>
