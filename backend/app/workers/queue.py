@@ -22,6 +22,19 @@ class ProcessingQueue:
     def start(self):
         if self._worker_task is None or self._worker_task.done():
             self._worker_task = asyncio.create_task(self._worker_loop())
+            asyncio.create_task(self._recover_pending_jobs())
+
+    async def _recover_pending_jobs(self):
+        try:
+            await asyncio.sleep(1.0)
+            async with async_session_factory() as session:
+                stmt = select(Bill.id).where(Bill.status.in_(["QUEUED", "EXTRACTING"]))
+                res = await session.execute(stmt)
+                for bill_id in res.scalars().all():
+                    logger.info(f"Re-queuing interrupted bill job {bill_id}")
+                    await self.enqueue(bill_id)
+        except Exception as e:
+            logger.warning(f"Error recovering pending jobs: {e}")
 
     async def enqueue(self, bill_id: str):
         await self._queue.put(bill_id)
@@ -35,6 +48,25 @@ class ProcessingQueue:
                 logger.error(f"Error processing bill job {bill_id}: {e!s}", exc_info=True)
             finally:
                 self._queue.task_done()
+
+    async def _enrich_bill_summary_async(self, bill_id: str, raw_text: str, current_data: dict[str, Any]):
+        try:
+            _, ai_summary = await universal_extractor.generate_bill_summary_and_fallback(raw_text, current_data)
+            if ai_summary:
+                async with async_session_factory() as session:
+                    stmt = select(Bill).where(Bill.id == bill_id)
+                    res = await session.execute(stmt)
+                    b = res.scalar_one_or_none()
+                    if b and b.bill_summary != ai_summary:
+                        b.bill_summary = ai_summary
+                        await session.commit()
+                        if b.file_sha256:
+                            cached = await cache_service.get_cached_bill(b.file_sha256)
+                            if cached:
+                                cached["bill_summary"] = ai_summary
+                                await cache_service.set_cached_bill(b.file_sha256, cached)
+        except Exception as e:
+            logger.info(f"Background AI summary enrichment skipped: {e}")
 
     async def _process_bill(self, bill_id: str):
         async with async_session_factory() as session:
@@ -55,7 +87,7 @@ class ProcessingQueue:
                 return
 
             ocr_result = ocr_engine.extract(file_bytes, bill.file_name)
-            parsed_data: dict[str, Any] = await universal_extractor.parse(ocr_result.text)
+            parsed_data: dict[str, Any] = universal_extractor.parse_fast(ocr_result.text)
 
             is_valid = parsed_data.get("is_valid_bill", True)
             bill.is_valid_bill = is_valid
@@ -169,6 +201,9 @@ class ProcessingQueue:
             }
             await cache_service.set_cached_bill(bill.file_sha256, cached_payload)
             logger.info(f"Processed bill {bill.id} - Status: {bill.status}")
+
+            # Asynchronously enrich with LLM summary in background without blocking OCR throughput
+            asyncio.create_task(self._enrich_bill_summary_async(bill.id, ocr_result.text, parsed_data))
 
 
 task_queue = ProcessingQueue()

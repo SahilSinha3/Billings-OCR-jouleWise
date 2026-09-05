@@ -59,6 +59,7 @@ export interface BillDetail {
   total_current_charges: number;
   net_amount_due: number;
   amount_after_due_date?: number | null;
+  file_name?: string | null;
   status: "QUEUED" | "EXTRACTING" | "VERIFIED" | "FLAGGED_FOR_REVIEW" | "FAILED" | "REJECTED_NON_BILL";
   is_valid_bill?: boolean;
   validation_error?: string | null;

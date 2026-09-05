@@ -233,11 +233,12 @@ class UniversalBillExtractor:
         net_amount_due = 0.0
         amt_patterns = [
             r"Say[^\d]*(\d{6,10})",
+            r"=\s*(\d{7,10})",
+            r"Grand Total[^\n]*?(\d{7,9}[\s\.]\d{2})",
+            r"(?:Grand Total|Net Payable Amount|Net Amount Due|Total Due)[^\n=]*?(?:=|\:|Rs\.?|₹)?\s*(\d{6,10})",
             r"Bill Amount:\s*([\d,]+\.?\d*)",
             r"Net Payable Amount\s*\n\s*([\d,]+\.?\d*)",
             r"Payable amount before due date[^\d]*([\d,]+\.?\d*)",
-            r"Grand Total[^\n]*?(\d{7,9}[\s\.]\d{2})",
-            r"(?:Net Amount Due|Total Due)[^\d]*([\d,]+\.?\d*)",
         ]
         for pat in amt_patterns:
             m = re.search(pat, clean_text, re.IGNORECASE)
@@ -253,6 +254,8 @@ class UniversalBillExtractor:
         units_patterns = [
             r"Billable Units in\s*KWh\s*[:\n\s]*([\d,]+\.?\d*)",
             r"Net KWH Cons\.[^\n]*\n\s*([\d,]+\.?\d*)",
+            r"(?:IMainmR|Main\s*MR)[^\n]*?(\d{6,8})",
+            r"(\d{6,8})\|?Units",
             r"Total[^\d]*(\d{6,8})\s*(?:Units|kWh|KWh)?",
             r"Total Units Consumed[^\d]*([\d,]+\.?\d*)",
         ]
@@ -271,7 +274,7 @@ class UniversalBillExtractor:
             contract_demand = self.clean_amount(cd_m.group(1)) or None
 
         power_factor = None
-        pf_m = re.search(r"(?:Bpf|Av\.\s*P\.F|Power Factor)\s*[:\n\s]*([\d\.]+)", clean_text, re.IGNORECASE)
+        pf_m = re.search(r"(?:Bpf|Av\.\s*P\.F|Power Factor)[,\s:]*([\d\.]+)", clean_text, re.IGNORECASE)
         if pf_m:
             try:
                 val = float(pf_m.group(1))
@@ -362,7 +365,6 @@ class UniversalBillExtractor:
     async def _call_gemini(self, prompt: str) -> dict[str, Any] | None:
         if not settings.GEMINI_API_KEY:
             return None
-        # Try gemini-2.5-flash first, then gemini-1.5-flash
         for model in ["gemini-2.5-flash", "gemini-1.5-flash"]:
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={settings.GEMINI_API_KEY}"
@@ -373,7 +375,7 @@ class UniversalBillExtractor:
                         "responseMimeType": "application/json",
                     },
                 }
-                async with httpx.AsyncClient(timeout=10.0) as client:
+                async with httpx.AsyncClient(timeout=8.0) as client:
                     resp = await client.post(url, json=payload)
                     if resp.status_code == 200:
                         data = resp.json()
@@ -387,7 +389,7 @@ class UniversalBillExtractor:
 
     async def _call_ollama(self, prompt: str) -> dict[str, Any] | None:
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 res = await client.post(
                     f"{settings.OLLAMA_BASE_URL}/api/generate",
                     json={
@@ -404,9 +406,27 @@ class UniversalBillExtractor:
             logger.info(f"Ollama {settings.OLLAMA_MODEL} call failed: {e!s}")
         return None
 
-    async def generate_bill_summary_and_fallback(
-        self, text: str, data: dict[str, Any]
-    ) -> tuple[dict[str, Any], str | None]:
+    def build_deterministic_summary(self, data: dict[str, Any]) -> str:
+        c_name = data.get("consumer_name") or "the consumer"
+        c_no = data.get("consumer_number") or data.get("account_number") or ""
+        c_str = f" ({c_no})" if c_no else ""
+        d_name = data.get("discom_name") or "the state electricity distribution utility"
+        amt_val = data.get("net_amount_due", 0.0)
+        units_val = data.get("total_units_kwh", 0.0)
+        due_val = data.get("due_date")
+        pf_val = data.get("power_factor")
+
+        amt_str = f"₹{amt_val:,.2f}" if amt_val > 0 else "the billed amount"
+        units_str = f"{units_val:,.0f} kWh" if units_val > 0 else "metered consumption"
+        due_str = f" with payment due on {due_val}" if due_val else ""
+        pf_str = f" (operating power factor: {pf_val})" if pf_val else ""
+
+        return (
+            f"Electricity utility bill for {c_name}{c_str} issued by {d_name}. "
+            f"Total billed active energy is {units_str}{pf_str} and the net amount due is {amt_str}{due_str}."
+        )
+
+    async def generate_bill_summary_and_fallback(self, text: str, data: dict[str, Any]) -> tuple[dict[str, Any], str]:
         prompt = (
             f"You are an enterprise utility bill auditor. Based on the OCR text of an electricity bill below:\n"
             f"1. Generate a concise, plain-English summary (2-3 sentences) in easy terms explaining: "
@@ -455,9 +475,12 @@ class UniversalBillExtractor:
                 if not data.get("consumer_number"):
                     data["consumer_number"] = data["account_number"]
 
+        if not summary:
+            summary = self.build_deterministic_summary(data)
+
         return data, summary
 
-    async def parse(self, text: str) -> dict[str, Any]:
+    def parse_fast(self, text: str) -> dict[str, Any]:
         is_valid, validation_err = self.validate_is_electricity_bill(text)
         if not is_valid:
             return {
@@ -478,8 +501,15 @@ class UniversalBillExtractor:
         extracted_data = self.extract_heuristic_fields(text)
         extracted_data["is_valid_bill"] = True
         extracted_data["validation_error"] = None
+        extracted_data["bill_summary"] = self.build_deterministic_summary(extracted_data)
+        return extracted_data
 
-        updated_data, summary = await self.generate_bill_summary_and_fallback(text, extracted_data)
+    async def parse(self, text: str) -> dict[str, Any]:
+        fast_data = self.parse_fast(text)
+        if not fast_data.get("is_valid_bill", True):
+            return fast_data
+
+        updated_data, summary = await self.generate_bill_summary_and_fallback(text, fast_data)
         updated_data["bill_summary"] = summary
         return updated_data
 

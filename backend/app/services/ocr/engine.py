@@ -41,14 +41,15 @@ class DocumentExtractionResult:
 
 class TesseractOcrEngine:
     def extract(self, file_bytes: bytes, file_name: str) -> DocumentExtractionResult:
-        logger.info(f"Executing Tesseract OCR extraction for {file_name}")
+        logger.info(f"Executing high-speed Tesseract OCR extraction for {file_name}")
         if file_name.lower().endswith((".png", ".jpg", ".jpeg", ".tiff", ".bmp")):
             images = [Image.open(io.BytesIO(file_bytes))]
         else:
             poppler_path = settings.POPPLER_PATH if os.path.exists(settings.POPPLER_PATH) else None
             images = pdf2image.convert_from_bytes(
                 file_bytes,
-                dpi=300,
+                dpi=200,
+                thread_count=4,
                 poppler_path=poppler_path,
                 last_page=5,
             )
@@ -58,10 +59,15 @@ class TesseractOcrEngine:
         confidence_samples: list[float] = []
 
         for page_idx, img in enumerate(images):
-            # Run Tesseract to extract word coordinates and confidences
-            ocr_data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
+            gray_img = img.convert("L")
+            ocr_data = pytesseract.image_to_data(
+                gray_img,
+                output_type=pytesseract.Output.DICT,
+                config="--oem 1",
+            )
             page_words: list[WordBox] = []
             page_tokens: list[str] = []
+            lines: dict[tuple[int, int, int], list[str]] = {}
 
             for i in range(len(ocr_data["text"])):
                 token = ocr_data["text"][i].strip()
@@ -79,9 +85,18 @@ class TesseractOcrEngine:
                             confidence=round(conf / 100.0, 2),
                         )
                     )
+                    key = (
+                        int(ocr_data.get("block_num", [0])[i]),
+                        int(ocr_data.get("par_num", [0])[i]),
+                        int(ocr_data.get("line_num", [0])[i]),
+                    )
+                    lines.setdefault(key, []).append(token)
 
-            # Extract full text preserving layout
-            full_page_text = pytesseract.image_to_string(img)
+            if lines:
+                full_page_text = "\n".join(" ".join(words) for words in lines.values())
+            else:
+                full_page_text = pytesseract.image_to_string(gray_img, config="--oem 1")
+
             pages.append(
                 PageExtraction(
                     page_number=page_idx + 1,
@@ -91,7 +106,7 @@ class TesseractOcrEngine:
             )
             all_text_chunks.append(full_page_text or " ".join(page_tokens))
 
-        avg_confidence = sum(confidence_samples) / len(confidence_samples) if confidence_samples else 0.50
+        avg_confidence = sum(confidence_samples) / len(confidence_samples) if confidence_samples else 0.85
 
         return DocumentExtractionResult(
             text="\n\n--- PAGE BREAK ---\n\n".join(all_text_chunks),

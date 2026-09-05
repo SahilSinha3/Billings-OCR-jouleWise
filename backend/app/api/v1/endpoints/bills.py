@@ -1,8 +1,10 @@
+import csv
 import hashlib
 import io
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -237,6 +239,71 @@ async def bulk_upload_bills(
 
 
 @router.get(
+    "/export/csv",
+    summary="Export All Bills as CSV",
+    description="Export all processed electricity bills, verification outcomes, and financial totals to a downloadable CSV.",
+)
+async def export_all_bills_csv(
+    session: AsyncSession = Depends(get_db_session),
+):
+    stmt = select(Bill).order_by(Bill.created_at.desc())
+    result = await session.execute(stmt)
+    bills = result.scalars().all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "Bill ID",
+            "Discom Code",
+            "Discom Name",
+            "Consumer Name",
+            "Consumer / CA Number",
+            "Bill Number",
+            "Bill Date",
+            "Due Date",
+            "Total Units (kWh)",
+            "Power Factor",
+            "Net Amount Due (INR)",
+            "Status",
+            "Is Math Verified",
+            "Plain-English Summary",
+            "File Name",
+            "Created At",
+        ]
+    )
+    for b in bills:
+        writer.writerow(
+            [
+                b.id,
+                b.discom_code,
+                b.discom_name,
+                b.consumer_name,
+                b.consumer_number or b.account_number or "",
+                b.bill_number or "",
+                b.bill_date.isoformat() if b.bill_date else "",
+                b.due_date.isoformat() if b.due_date else "",
+                b.total_units_kwh or 0.0,
+                b.power_factor or "",
+                b.net_amount_due or 0.0,
+                b.status,
+                "Yes" if b.is_math_verified else "No",
+                (b.bill_summary or "").replace("\n", " "),
+                b.file_name,
+                b.created_at.isoformat() if b.created_at else "",
+            ]
+        )
+
+    csv_data = output.getvalue()
+    filename = f"joulewise_all_bills_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get(
     "/{bill_id}/file",
     summary="Stream Original Bill File",
     description="Stream the original uploaded PDF or image file directly from PostgreSQL BYTEA storage.",
@@ -259,6 +326,128 @@ async def get_bill_file(
             "Cache-Control": "public, max-age=86400",
         },
     )
+
+
+@router.get(
+    "/{bill_id}/export/csv",
+    summary="Export Single Bill as Detailed CSV",
+    description="Export complete structured audit report for a specific electricity bill including registers and line items.",
+)
+async def export_single_bill_csv(
+    bill_id: str,
+    session: AsyncSession = Depends(get_db_session),
+):
+    stmt = select(Bill).options(selectinload(Bill.readings), selectinload(Bill.line_items)).where(Bill.id == bill_id)
+    result = await session.execute(stmt)
+    bill = result.scalar_one_or_none()
+    if not bill:
+        raise BillNotFoundError(bill_id)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(["SECTION", "BILL OVERVIEW & IDENTIFIERS"])
+    writer.writerow(["Bill ID", bill.id])
+    writer.writerow(["Discom Code", bill.discom_code])
+    writer.writerow(["Discom Name", bill.discom_name])
+    writer.writerow(["Consumer Name", bill.consumer_name])
+    writer.writerow(["Consumer / CA Number", bill.consumer_number or bill.account_number or ""])
+    writer.writerow(["Bill Number", bill.bill_number or ""])
+    writer.writerow(["Bill Date", bill.bill_date.isoformat() if bill.bill_date else ""])
+    writer.writerow(["Due Date", bill.due_date.isoformat() if bill.due_date else ""])
+    writer.writerow(["Total Units Consumed (kWh)", bill.total_units_kwh or 0.0])
+    writer.writerow(["Power Factor", bill.power_factor or ""])
+    writer.writerow(["Net Amount Due (INR)", bill.net_amount_due or 0.0])
+    writer.writerow(["Audit Status", bill.status])
+    writer.writerow(["Mathematical Verification", "PASS" if bill.is_math_verified else "FLAGGED / PENDING"])
+    writer.writerow(["Plain-English Summary", (bill.bill_summary or "").replace("\n", " ")])
+    writer.writerow([])
+
+    writer.writerow(["SECTION", "METER REGISTERS"])
+    writer.writerow(
+        ["Meter Number", "Register Type", "Previous Reading", "Current Reading", "Multiplier", "Units Consumed"]
+    )
+    if bill.readings:
+        for r in bill.readings:
+            writer.writerow(
+                [
+                    r.meter_number,
+                    r.reading_type,
+                    r.previous_reading,
+                    r.current_reading,
+                    r.multiplying_factor,
+                    r.consumed_units,
+                ]
+            )
+    else:
+        writer.writerow(["No register breakdown detected", "", "", "", "", ""])
+    writer.writerow([])
+
+    writer.writerow(["SECTION", "BILL LINE ITEMS"])
+    writer.writerow(["Category", "Description", "Rate", "Quantity", "Amount (INR)"])
+    if bill.line_items:
+        for li in bill.line_items:
+            writer.writerow([li.category, li.description, li.rate or "", li.quantity or "", li.amount])
+    else:
+        writer.writerow(["Standard Tariff Assessment", "Net Energy Charges", "", "", bill.net_amount_due or 0.0])
+
+    safe_name = "".join(c for c in (bill.consumer_name or "bill") if c.isalnum() or c in ("-", "_")).strip()
+    filename = f"bill_{bill_id[:8]}_{safe_name}.csv"
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post(
+    "/{bill_id}/summarize",
+    response_model=BillDetailResponse,
+    summary="Generate or Refresh Plain-English Summary",
+    description="Generate or refresh the plain-English summary using Gemini or local Ollama Llama 3.2.",
+)
+async def summarize_bill(
+    bill_id: str,
+    session: AsyncSession = Depends(get_db_session),
+) -> BillDetailResponse:
+    from app.services.ocr.universal_extractor import universal_extractor
+
+    stmt = select(Bill).options(selectinload(Bill.readings), selectinload(Bill.line_items)).where(Bill.id == bill_id)
+    result = await session.execute(stmt)
+    bill = result.scalar_one_or_none()
+    if not bill:
+        raise BillNotFoundError(bill_id)
+
+    data = {
+        "consumer_name": bill.consumer_name,
+        "discom_name": bill.discom_name,
+        "consumer_number": bill.consumer_number,
+        "account_number": bill.account_number,
+        "total_units_kwh": bill.total_units_kwh,
+        "net_amount_due": bill.net_amount_due,
+        "due_date": bill.due_date,
+    }
+
+    updated_data, summary = await universal_extractor.generate_bill_summary_and_fallback(
+        bill.raw_extracted_text or "", data
+    )
+    bill.bill_summary = summary
+    if updated_data.get("consumer_name") and not bill.consumer_name:
+        bill.consumer_name = updated_data["consumer_name"]
+    if updated_data.get("net_amount_due") and bill.net_amount_due == 0:
+        bill.net_amount_due = updated_data["net_amount_due"]
+
+    await session.commit()
+    await session.refresh(bill)
+
+    if bill.file_sha256:
+        cached = await cache_service.get_cached_bill(bill.file_sha256)
+        if cached:
+            cached["bill_summary"] = bill.bill_summary
+            await cache_service.set_cached_bill(bill.file_sha256, cached)
+
+    return _build_bill_response(bill)
 
 
 @router.get(
