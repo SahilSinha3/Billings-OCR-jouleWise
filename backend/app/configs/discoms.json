@@ -1,0 +1,67 @@
+{
+  "discoms": [
+    {
+      "code": "BESCOM",
+      "name": "Bangalore Electricity Supply Company Limited",
+      "state": "Karnataka",
+      "regulatory_commission": "KERC",
+      "keywords": ["BESCOM", "Bangalore Electricity Supply", "KERC", "Account ID"],
+      "tariff_categories": ["LT-2(a)", "LT-3", "HT-2(a)", "HT-2(b)"],
+      "default_supply_voltage_kv": 11.0
+    },
+    {
+      "code": "MSEDCL",
+      "name": "Maharashtra State Electricity Distribution Company Limited",
+      "state": "Maharashtra",
+      "regulatory_commission": "MERC",
+      "keywords": ["MAHADISCOM", "MSEDCL", "Maharashtra State Electricity", "Consumer No"],
+      "tariff_categories": ["LT-I", "LT-II", "HT-I", "HT-II"],
+      "default_supply_voltage_kv": 22.0
+    },
+    {
+      "code": "TANGEDCO",
+      "name": "Tamil Nadu Generation and Distribution Corporation Limited",
+      "state": "Tamil Nadu",
+      "regulatory_commission": "TNERC",
+      "keywords": ["TANGEDCO", "Tamil Nadu Electricity Board", "TNEB", "Service Number"],
+      "tariff_categories": ["Tariff III-A", "Tariff III-B", "Tariff I-A"],
+      "default_supply_voltage_kv": 11.0
+    },
+    {
+      "code": "UPPCL",
+      "name": "Uttar Pradesh Power Corporation Limited",
+      "state": "Uttar Pradesh",
+      "regulatory_commission": "UPERC",
+      "keywords": ["UPPCL", "Madhyanchal", "Dakshinanchal", "Paschimanchal", "Purvanchal"],
+      "tariff_categories": ["LMV-1", "LMV-2", "HV-1", "HV-2"],
+      "default_supply_voltage_kv": 11.0
+    },
+    {
+      "code": "WBSEDCL",
+      "name": "West Bengal State Electricity Distribution Company Limited",
+      "state": "West Bengal",
+      "regulatory_commission": "WBERC",
+      "keywords": ["WBSEDCL", "Vidyut Bhavan", "Consumer Id"],
+      "tariff_categories": ["Class A", "Class B", "Commercial", "Industrial"],
+      "default_supply_voltage_kv": 11.0
+    },
+    {
+      "code": "TPDDL",
+      "name": "Tata Power Delhi Distribution Limited",
+      "state": "Delhi",
+      "regulatory_commission": "DERC",
+      "keywords": ["Tata Power", "TPDDL", "CA Number"],
+      "tariff_categories": ["Domestic", "Non-Domestic", "Industrial"],
+      "default_supply_voltage_kv": 11.0
+    },
+    {
+      "code": "GENERIC",
+      "name": "Generic State Electricity Board",
+      "state": "All",
+      "regulatory_commission": "CERC",
+      "keywords": ["Electricity Bill", "Energy Bill", "Consumer No", "Meter Reading"],
+      "tariff_categories": ["Standard Commercial", "Standard Industrial", "Domestic"],
+      "default_supply_voltage_kv": 0.415
+    }
+  ]
+}

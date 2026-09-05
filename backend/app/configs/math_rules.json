@@ -1,0 +1,23 @@
+{
+  "units_calculation": {
+    "tolerance_epsilon": 0.05,
+    "default_multiplying_factor": 1.0,
+    "allow_meter_rollover": true,
+    "meter_digits_max": 8
+  },
+  "financial_reconciliation": {
+    "tolerance_rupees": 1.00,
+    "round_to_decimals": 2
+  },
+  "power_factor": {
+    "min_valid_pf": 0.0,
+    "max_valid_pf": 1.0,
+    "penalty_threshold": 0.90,
+    "incentive_threshold": 0.95
+  },
+  "date_validation": {
+    "max_billing_cycle_days": 65,
+    "min_billing_cycle_days": 15,
+    "require_due_date_after_bill_date": true
+  }
+}

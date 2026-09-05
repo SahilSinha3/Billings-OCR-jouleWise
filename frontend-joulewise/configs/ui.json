@@ -1,0 +1,25 @@
+{
+  "brand": {
+    "name": "JouleWise",
+    "tagline": "Enterprise State Electricity Bill OCR & Tariff Audit",
+    "version": "1.0.0"
+  },
+  "labels": {
+    "field_not_available": "Field not available",
+    "drag_drop_title": "Drag & drop electricity bills to upload",
+    "drag_drop_subtitle": "Supports scanned PDFs, digital invoices, and JPEG/PNG receipts up to 25MB",
+    "browse_files": "Browse Files",
+    "processing": "Processing document...",
+    "recent_bills": "Audited Utility Bills",
+    "math_verified_title": "Mathematical Audit",
+    "verified_badge": "VERIFIED",
+    "review_needed_badge": "NEEDS REVIEW"
+  },
+  "status_badges": {
+    "QUEUED": { "label": "Queued", "variant": "neutral" },
+    "EXTRACTING": { "label": "Extracting OCR", "variant": "warning" },
+    "VERIFIED": { "label": "Audit Passed", "variant": "success" },
+    "FLAGGED_FOR_REVIEW": { "label": "Discrepancy Flagged", "variant": "danger" },
+    "FAILED": { "label": "Failed", "variant": "danger" }
+  }
+}

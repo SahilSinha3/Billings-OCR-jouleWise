@@ -1,0 +1,30 @@
+[project]
+name = "joulewise-backend"
+version = "1.0.0"
+description = "Enterprise State Electricity Bill OCR & Tariff Platform"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+]
+ignore = [
+    "E501", # Line length (handled by formatter)
+    "B008", # Do not perform function call `Depends` in argument defaults (FastAPI standard)
+    "F821", # Forward reference type hints in SQLAlchemy models
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
