@@ -861,32 +861,45 @@ export default function JouleWiseDashboard() {
 
                     {/* Meter Readings Table */}
                     {selectedBill.readings && selectedBill.readings.length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 10, borderTop: "1px solid var(--border-subtle)" }}>
-                        <span className={styles.fieldsTitle}>
-                          Meter Registers ({selectedBill.readings.length})
-                        </span>
+                      <div className={styles.registersSection}>
+                        <div className={styles.registersHeaderRow}>
+                          <span className={styles.fieldsTitle}>
+                            Meter Registers ({selectedBill.readings.length})
+                          </span>
+                          <span className={styles.registersSubtext}>
+                            Deterministic active energy consumption & multiplier audit
+                          </span>
+                        </div>
                         <div className={styles.registersTableWrap}>
                           <table className={styles.registersTable}>
                             <thead>
                               <tr>
-                                <th>Register</th>
-                                <th>Type</th>
-                                <th>Prev</th>
-                                <th>Curr</th>
-                                <th>MF</th>
-                                <th style={{ textAlign: "right" }}>Consumed</th>
+                                <th>Register / Serial</th>
+                                <th>Reading Type</th>
+                                <th style={{ textAlign: "right" }}>Previous</th>
+                                <th style={{ textAlign: "right" }}>Current</th>
+                                <th style={{ textAlign: "center" }}>MF</th>
+                                <th style={{ textAlign: "right" }}>Billed Units (kWh)</th>
                               </tr>
                             </thead>
                             <tbody>
                               {selectedBill.readings.map((r, i) => (
                                 <tr key={i}>
-                                  <td style={{ fontWeight: 600 }}>{r.meter_number}</td>
-                                  <td style={{ color: "var(--text-muted)" }}>{r.reading_type}</td>
-                                  <td>{r.previous_reading.toLocaleString("en-IN")}</td>
-                                  <td>{r.current_reading.toLocaleString("en-IN")}</td>
-                                  <td>{r.multiplying_factor}</td>
-                                  <td style={{ textAlign: "right", fontWeight: 700 }}>
-                                    {r.consumed_units.toLocaleString("en-IN")}
+                                  <td style={{ fontWeight: 600, color: "#ffffff" }}>{r.meter_number}</td>
+                                  <td>
+                                    <span className={styles.registerTypeBadge}>{r.reading_type}</span>
+                                  </td>
+                                  <td style={{ textAlign: "right", fontFamily: "ui-monospace, monospace" }}>
+                                    {r.previous_reading.toLocaleString("en-IN", { minimumFractionDigits: 1, maximumFractionDigits: 3 })}
+                                  </td>
+                                  <td style={{ textAlign: "right", fontFamily: "ui-monospace, monospace" }}>
+                                    {r.current_reading.toLocaleString("en-IN", { minimumFractionDigits: 1, maximumFractionDigits: 3 })}
+                                  </td>
+                                  <td style={{ textAlign: "center", fontFamily: "ui-monospace, monospace", color: "var(--text-muted)" }}>
+                                    {r.multiplying_factor}
+                                  </td>
+                                  <td style={{ textAlign: "right", fontWeight: 700, color: "#ffffff", fontFamily: "ui-monospace, monospace" }}>
+                                    {r.consumed_units.toLocaleString("en-IN", { minimumFractionDigits: 1, maximumFractionDigits: 3 })}
                                   </td>
                                 </tr>
                               ))}

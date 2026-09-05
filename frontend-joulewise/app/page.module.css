@@ -310,13 +310,13 @@
 .workspaceGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
+  gap: 20px;
   align-items: start;
 }
 
 @media (min-width: 1024px) {
   .workspaceGrid {
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: 280px 1fr;
   }
 }
 
@@ -646,7 +646,13 @@
 
 @media (min-width: 1200px) {
   .splitViewerGrid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 42% 58%;
+  }
+}
+
+@media (min-width: 1440px) {
+  .splitViewerGrid {
+    grid-template-columns: 40% 60%;
   }
 }
 
@@ -957,33 +963,61 @@
 }
 
 /* Registers Table */
+.registersSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.registersHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.registersSubtext {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 .registersTableWrap {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow-x: auto;
   box-shadow: var(--shadow-sm);
+  background-color: rgba(18, 18, 20, 0.4);
 }
 
 .registersTable {
   width: 100%;
+  min-width: 520px;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   text-align: left;
 }
 
 .registersTable th {
   background-color: var(--bg-surface-elevated);
-  color: var(--text-secondary);
-  font-weight: 600;
-  padding: 8px 10px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
 }
 
 .registersTable td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   color: #e4e4e7;
+  white-space: nowrap;
 }
 
 .registersTable tr:last-child td {
@@ -991,7 +1025,18 @@
 }
 
 .registersTable tr:hover td {
-  background-color: var(--bg-surface-elevated);
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.registerTypeBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #d4d4d8;
+  white-space: nowrap;
 }
 
 /* Settings Modal */
