@@ -84,7 +84,7 @@ The platform is validated against 5 benchmark files in `Datasets/`:
 | :--- | :--- | :--- | :--- | :--- |
 | `Electricity Bill July'25.pdf` | JVVNL (Jaipur Vidyut) | Digital HT-5 | Acc: `97811741`, Units: `69,185 kWh`, Net Due: `₹5,50,624.78`, Due Date: `14-08-2025` | **Verified** |
 | `Energy Bill Mar-26 SCL.pdf` | APDCL (Assam Power) | Digital HT-II | Consumer: `M/S CEMENT MFG CO`, Acc: `006000002141`, Net Due: `₹1,73,06,353.00` | **Verified** |
-| `Energy Bill Mar-26 SCNEL.pdf` | APDCL (Assam Power) | Digital HT-II | Consumer: `Star Cement North-East Ltd`, Acc: `006010060944`, Net Due: `₹1,29,68,205.00` | **Verified** |
+| `Energy Bill Mar-26 SCNEL.pdf` | APDCL (Assam Power) | Digital HT-II | Consumer: `Star Cement North-East Ltd`, Acc: `006010060944`, Bill: `900237539`, TOD Units: `306,161.46 kWh`, Net Due: `₹1,29,68,205.00`, Due Date: `27-April-2026`, PF: `99.00` | **Verified** |
 | `EB BILL_06JUN2025.pdf` | GESCOM (Gulbarga) | Scanned EHT | Consumer: `Chettinad Cement`, Acc: `EHT 5`, Units: `1,008,700 kWh`, Net Due: `₹1,08,55,959.00` | **Verified** |
 | `EM6400RegMap_V01.01.02.pdf` | Schneider Electric | Technical Manual | Modbus register map. Correctly triggered non-bill guardrail. | **Rejected (Guardrail)** |
 

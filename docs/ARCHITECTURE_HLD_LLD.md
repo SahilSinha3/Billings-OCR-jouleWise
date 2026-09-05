@@ -235,3 +235,22 @@ Values exceeding $1.0$ indicate register column alignment errors or decimal poin
   - Outcome: Flagged as `REJECTED_NON_BILL` with error:
     `"Document recognized as technical manual or datasheet, not an electricity bill."`
   - The pipeline terminates before billing tables or line items are created.
+
+### Case 5: APDCL Open-Access TOD Energy Audit (Star Cement North-East)
+- **Document**: `Energy Bill Mar-26 SCNEL.pdf`
+- **Tariff**: HT V(C) HT II Industries (Seasonal Option 1, 220 kV)
+- **Consumer**: Star Cement North-East Limited (Chamatapathar, Sonapur, Kamrup)
+- **Extracted Attributes**:
+  - Consumer / Account Number: `006010060944`
+  - Bill Number: `900237539`
+  - Bill Issue Date: `11-April-2026`
+  - Due Date: `27-April-2026`
+  - Average Power Factor: `99.00` (Normalized to `0.99` for mathematical verification)
+  - Time-of-Day (TOD) Unit Breakdown:
+    - Solar TOD: `34,514.140 kWh`
+    - Peak TOD: `165,507.880 kWh`
+    - Normal TOD: `106,139.440 kWh`
+  - Total Active Energy Consumed: `306,161.460 kWh`
+  - Net Current Charges & Amount Due: `₹1,29,68,205.00`
+- **Audit Findings**:
+  Industrial open-access consumer reconciliation: Meter readings verify each TOD bucket individually. Power factor percentage ($99.00$) normalizes to $0.99$ without triggering discrepancy flags. The bill passes audit with zero discrepancies and status `VERIFIED`.
