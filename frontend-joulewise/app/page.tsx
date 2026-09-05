@@ -354,6 +354,7 @@ export default function JouleWiseDashboard() {
             <div className={styles.brandLogo}>
               <Zap style={{ width: 18, height: 18, fill: "#ffffff" }} />
             </div>
+            <span className={styles.brandName}>JouleWise</span>
           </div>
 
           <div className={styles.headerActions}>
