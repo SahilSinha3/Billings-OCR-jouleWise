@@ -8,24 +8,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
-  <!-- Mermaid.js Library -->
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     :root {
-      --bg-dark: #090e17;
+      --bg: #070c18;
       --card-bg: #0f172a;
-      --card-border: #1e293b;
+      --card-hover: #162238;
+      --border: rgba(56, 189, 248, 0.25);
       --cyan: #38bdf8;
-      --cyan-glow: rgba(56, 189, 248, 0.25);
       --emerald: #10b981;
       --purple: #a855f7;
       --amber: #f59e0b;
       --rose: #f43f5e;
       --white: #ffffff;
-      --slate-200: #e2e8f0;
-      --slate-400: #94a3b8;
-      --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --font-code: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      --subtext: #94a3b8;
+      --font-ui: "Inter", -apple-system, sans-serif;
+      --font-code: "JetBrains Mono", monospace;
     }
 
     * {
@@ -35,55 +32,50 @@
     }
 
     body {
-      background-color: var(--bg-dark);
+      background-color: var(--bg);
       color: var(--white);
       font-family: var(--font-ui);
-      padding: 28px 20px;
+      padding: 24px 16px;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
     }
 
     .container {
-      max-width: 1240px;
+      max-width: 1060px;
       margin: 0 auto;
     }
 
     /* Switcher Navigation */
-    .diagram-nav {
+    .nav-tabs {
       display: flex;
       justify-content: center;
       gap: 16px;
       margin-bottom: 28px;
     }
 
-    .nav-btn {
+    .tab-btn {
       background: #1e293b;
-      border: 1.5px solid #334155;
-      color: #94a3b8;
-      padding: 14px 32px;
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      color: var(--subtext);
+      padding: 12px 30px;
       border-radius: 9999px;
-      font-family: var(--font-ui);
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
-      letter-spacing: -0.01em;
       cursor: pointer;
       transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
     }
 
-    .nav-btn:hover {
+    .tab-btn:hover {
       color: var(--white);
       border-color: var(--cyan);
       background: #243248;
     }
 
-    .nav-btn.active {
-      background: rgba(56, 189, 248, 0.15);
+    .tab-btn.active {
+      background: rgba(56, 189, 248, 0.18);
       border-color: var(--cyan);
       color: var(--cyan);
-      box-shadow: 0 0 25px var(--cyan-glow);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
     }
 
     .diagram-panel {
@@ -92,252 +84,541 @@
 
     .diagram-panel.active {
       display: block;
-      animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: fadeIn 0.2s ease-in-out;
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
+      from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .diagram-card {
+    /* Architecture Flow Board */
+    .flow-board {
       background: var(--card-bg);
-      border: 1.5px solid var(--card-border);
+      border: 1.5px solid var(--border);
       border-radius: 20px;
-      padding: 36px 28px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      padding: 32px 24px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
       display: flex;
-      justify-content: center;
-      overflow-x: auto;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .mermaid {
-      width: 100%;
+    /* Node Blocks */
+    .node-block {
+      background: #152033;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 22px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .node-block:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.2);
+    }
+
+    .node-header {
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .node-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .node-badge {
+      font-family: var(--font-code);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .node-badge.emerald {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .node-badge.purple {
+      background: rgba(168, 85, 247, 0.15);
+      color: var(--purple);
+      border-color: rgba(168, 85, 247, 0.3);
+    }
+
+    .node-badge.amber {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--amber);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .node-desc {
+      font-size: 13.5px;
+      color: var(--subtext);
+      line-height: 1.5;
+    }
+
+    .node-code {
+      font-family: var(--font-code);
+      font-size: 12px;
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 3px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 6px;
+    }
+
+    /* Connecting Arrows */
+    .flow-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: center;
+      gap: 4px;
+      padding: 2px 0;
+      color: var(--cyan);
+      font-family: var(--font-code);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
-    .mermaid svg {
-      max-width: 100% !important;
-      height: auto !important;
-      font-family: var(--font-ui) !important;
+    .flow-arrow-icon {
+      font-size: 18px;
+      color: var(--cyan);
     }
 
-    /* Edge Path Line & Marker */
-    .edgePath .path {
-      stroke: #38bdf8 !important;
-      stroke-width: 2.8px !important;
+    /* Grid Splits */
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
     }
 
-    .marker {
-      fill: #38bdf8 !important;
-      stroke: #38bdf8 !important;
-      transform: scale(1.2);
+    /* Decision Diamond / Branching Area */
+    .decision-block {
+      background: #182235;
+      border: 2px solid var(--amber);
+      border-radius: 14px;
+      padding: 16px 20px;
+      text-align: center;
     }
 
-    /* High-Legibility Capsule Edge Labels */
-    .edgeLabel {
-      background-color: #0b1120 !important;
-      color: #38bdf8 !important;
-      font-family: var(--font-code) !important;
-      font-size: 13px !important;
-      font-weight: 700 !important;
-      padding: 6px 14px !important;
-      border-radius: 8px !important;
-      border: 1.5px solid rgba(56, 189, 248, 0.4) !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    .decision-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--amber);
+      margin-bottom: 4px;
     }
 
-    .edgeLabel span {
-      color: #38bdf8 !important;
+    .decision-subtitle {
+      font-family: var(--font-code);
+      font-size: 12px;
+      color: #fde68a;
     }
 
-    /* Node Label Styling */
-    .node .label {
-      color: #ffffff !important;
-      font-family: var(--font-ui) !important;
+    .branch-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 10px;
     }
 
-    .node rect,
-    .node polygon,
-    .node circle {
-      rx: 12px !important;
-      ry: 12px !important;
-      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)) !important;
+    .branch-card {
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 13px;
+      line-height: 1.5;
     }
 
-    /* Subgraph Clusters */
-    .cluster rect {
-      fill: rgba(15, 23, 42, 0.6) !important;
-      stroke: rgba(56, 189, 248, 0.3) !important;
-      stroke-width: 1.5px !important;
-      stroke-dasharray: 6 6 !important;
-      rx: 16px !important;
+    .branch-card.hit {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1.5px solid var(--emerald);
+      color: #a7f3d0;
     }
 
-    .cluster text {
-      fill: #38bdf8 !important;
-      font-family: var(--font-ui) !important;
-      font-size: 14px !important;
-      font-weight: 800 !important;
-      letter-spacing: 0.05em !important;
+    .branch-card.miss {
+      background: rgba(168, 85, 247, 0.1);
+      border: 1.5px solid var(--purple);
+      color: #e9d5ff;
+    }
+
+    .branch-card.reject {
+      background: rgba(244, 63, 94, 0.1);
+      border: 1.5px solid var(--rose);
+      color: #fecdd3;
+    }
+
+    .branch-title {
+      font-weight: 800;
+      font-size: 14px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Worker Steps Grid */
+    .worker-pipeline {
+      background: rgba(10, 16, 29, 0.6);
+      border: 2px dashed rgba(56, 189, 248, 0.35);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .worker-pipeline-header {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .worker-steps-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+    }
+
+    .step-mini-card {
+      background: #111a2e;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      transition: all 0.2s ease;
+    }
+
+    .step-mini-card:hover {
+      border-color: var(--cyan);
+      transform: translateY(-2px);
+    }
+
+    .step-mini-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 4px;
+    }
+
+    .step-mini-sub {
+      font-size: 12px;
+      color: var(--subtext);
+      line-height: 1.4;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <!-- Switcher -->
-    <div class="diagram-nav">
-      <button class="nav-btn active" onclick="switchDiagram('hld')">
-        🏛️ 1. High-Level Design (HLD)
-      </button>
-      <button class="nav-btn" onclick="switchDiagram('lld')">
-        ⚡ 2. Low-Level Design (LLD) — User Query Tracing
-      </button>
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="showTab('hld')">🏛️ 1. High-Level Design (HLD)</button>
+      <button class="tab-btn" onclick="showTab('lld')">⚡ 2. Low-Level Design (LLD) — User Query Tracing</button>
     </div>
 
-    <!-- HLD Diagram -->
-    <div id="panel-hld" class="diagram-panel active">
-      <div class="diagram-card">
-        <pre class="mermaid">
-flowchart TD
-    %% Professional Color Classes
-    classDef clientTier fill:#1e3a8a,stroke:#38bdf8,stroke-width:3px,color:#ffffff,font-weight:700,font-size:16px;
-    classDef gatewayTier fill:#1e293b,stroke:#38bdf8,stroke-width:3px,color:#ffffff,font-weight:700,font-size:16px;
-    classDef cacheTier fill:#064e3b,stroke:#10b981,stroke-width:3px,color:#ffffff,font-weight:700,font-size:15px;
-    classDef dbTier fill:#4c1d95,stroke:#c084fc,stroke-width:3px,color:#ffffff,font-weight:700,font-size:15px;
-    classDef queueTier fill:#1e293b,stroke:#f59e0b,stroke-width:3px,color:#ffffff,font-weight:700,font-size:15px;
-    classDef workerStep fill:#0f172a,stroke:#38bdf8,stroke-width:2.5px,color:#f8fafc,font-weight:600,font-size:14px;
-    classDef auditStep fill:#064e3b,stroke:#10b981,stroke-width:3px,color:#ffffff,font-weight:700,font-size:15px;
-    classDef outputTier fill:#064e3b,stroke:#10b981,stroke-width:3.5px,color:#ffffff,font-weight:800,font-size:16px;
+    <!-- TAB 1: High-Level Design (HLD) -->
+    <div id="tab-hld" class="diagram-panel active">
+      <div class="flow-board">
+        <!-- Tier 1: Client -->
+        <div class="node-block" style="border-color: #38bdf8; background: #0e2038;">
+          <div class="node-header">
+            <span class="node-title">🌐 Tier 1: Client Presentation — Next.js 16</span>
+            <span class="node-badge">PORT 3000</span>
+          </div>
+          <div class="node-desc">
+            Next.js 16 Web Dashboard • Drag-and-Drop Dropzone • Screen-Blur Loader Shield • Inline Memory PDF Viewer • 16-Column Consolidated CSV Table
+          </div>
+        </div>
 
-    CLIENT["🌐 Presentation Tier: Next.js 16 Web Dashboard (Port 3000)<br/><span style='font-size:13px;font-weight:400;color:#93c5fd'>Dropzone Drag-and-Drop • Screen-Blur Shield • Inline Memory PDF Viewer • CSV Export Table</span>"]:::clientTier
+        <div class="flow-arrow">
+          <span>HTTP Multipart Stream & REST JSON</span>
+          <span class="flow-arrow-icon">▼</span>
+        </div>
 
-    GATEWAY["⚡ Ingress Gateway: FastAPI Async REST API (Port 8000)<br/><span style='font-size:13px;font-weight:400;color:#94a3b8'>Stateless Async Routing • In-Memory SHA-256 Hashing • DB Memory Binary Streaming</span>"]:::gatewayTier
+        <!-- Tier 2: Gateway -->
+        <div class="node-block" style="border-color: #38bdf8;">
+          <div class="node-header">
+            <span class="node-title">⚡ Tier 2: Ingress API Gateway — FastAPI Engine</span>
+            <span class="node-badge">PORT 8000</span>
+          </div>
+          <div class="node-desc">
+            Stateless Async Router • Raw Byte Cryptographic SHA-256 Fingerprinting • Database Memory PDF Streaming • CSV Report Generator
+          </div>
+        </div>
 
-    CLIENT -->|"HTTP Multipart Stream & REST JSON"| GATEWAY
+        <div class="flow-arrow">
+          <span>Deduplication & Zero-Disk Storage</span>
+          <span class="flow-arrow-icon">▼</span>
+        </div>
 
-    subgraph STORAGE ["Storage & In-Memory Deduplication Layer"]
-        REDIS["⚡ Redis 7 Cache (Port 6379)<br/><span style='font-size:12.5px;font-weight:400;color:#a7f3d0'>Sub-5ms SHA-256 Deduplication</span>"]:::cacheTier
-        POSTGRES["🗄️ PostgreSQL 17 Database (Port 5432)<br/><span style='font-size:12.5px;font-weight:400;color:#e9d5ff'>Zero-Disk BYTEA Binary Storage</span>"]:::dbTier
-    end
+        <!-- Tier 3: Redis & PostgreSQL -->
+        <div class="split-grid">
+          <div class="node-block" style="border-color: #10b981; background: #072a1d;">
+            <div class="node-header">
+              <span class="node-title">⚡ Redis 7 Cache</span>
+              <span class="node-badge emerald">PORT 6379</span>
+            </div>
+            <div class="node-desc">
+              Sub-5ms SHA-256 Deduplication. If a bill is already processed, returns verified JSON immediately without re-running OCR.
+            </div>
+            <div class="node-code" style="color: #a7f3d0; background: rgba(16, 185, 129, 0.15);">key: bill:sha256:{hash}</div>
+          </div>
 
-    QUEUE["📬 In-Process asyncio.Queue<br/><span style='font-size:12.5px;font-weight:400;color:#fde68a'>Non-blocking HTTP 202 Dispatch</span>"]:::queueTier
+          <div class="node-block" style="border-color: #a855f7; background: #260f38;">
+            <div class="node-header">
+              <span class="node-title">🗄️ PostgreSQL 17 Database</span>
+              <span class="node-badge purple">PORT 5432</span>
+            </div>
+            <div class="node-desc">
+              Zero-Disk Storage. Raw document bytes are stored directly as database <code>BYTEA</code> binary blobs. No files ever touch the server's hard disk.
+            </div>
+            <div class="node-code" style="color: #e9d5ff; background: rgba(168, 85, 247, 0.15);">SQLAlchemy 2.0 ORM</div>
+          </div>
+        </div>
 
-    GATEWAY -->|"1. Sub-5ms Cache Lookup"| REDIS
-    GATEWAY -->|"2. Zero-Disk Binary Write"| POSTGRES
-    GATEWAY -->|"3. Enqueue bill_id"| QUEUE
+        <div class="flow-arrow">
+          <span>Non-Blocking HTTP 202 Dispatch</span>
+          <span class="flow-arrow-icon">▼</span>
+        </div>
 
-    subgraph WORKER ["Worker Processing & Deterministic Verification Pipeline"]
-        direction LR
-        POPPLER["Poppler 200 DPI<br/><span style='font-size:12px;color:#94a3b8'>4 Worker Threads</span>"]:::workerStep
-        TESSERACT["Tesseract 5 LSTM<br/><span style='font-size:12px;color:#94a3b8'>Neural OCR (~2.2s)</span>"]:::workerStep
-        GUARDRAIL["Non-Bill Filter<br/><span style='font-size:12px;color:#94a3b8'>Rejects EM6400</span>"]:::workerStep
-        PARSER["DISCOM Parsers<br/><span style='font-size:12px;color:#94a3b8'>APDCL / JVVNL / GESCOM</span>"]:::workerStep
-        MATH["Tariff Math Audit<br/><span style='font-size:12px;color:#a7f3d0'>Meter Delta Rules</span>"]:::auditStep
+        <!-- Tier 4: Queue -->
+        <div class="node-block" style="border-color: #f59e0b;">
+          <div class="node-header">
+            <span class="node-title">📬 Tier 3: In-Process Asynchronous Queue — asyncio.Queue</span>
+            <span class="node-badge amber">IN-PROCESS</span>
+          </div>
+          <div class="node-desc">
+            Enqueues <code>bill_id</code> and immediately returns <code>HTTP 202 Accepted</code> to the browser so large multi-page bills never cause gateway timeouts.
+          </div>
+        </div>
 
-        POPPLER --> TESSERACT --> GUARDRAIL --> PARSER --> MATH
-    end
+        <div class="flow-arrow">
+          <span>Worker Dequeues Background Job</span>
+          <span class="flow-arrow-icon">▼</span>
+        </div>
 
-    QUEUE -->|"Pulls Background Task"| POPPLER
+        <!-- Tier 5: Worker Pipeline -->
+        <div class="worker-pipeline">
+          <div class="worker-pipeline-header">
+            ⚙️ Tier 4: Worker Pipeline — Neural OCR, Guardrails & Tariff Verification
+          </div>
 
-    OUTPUT["🚀 Realtime Verified UI Dashboard & Consolidated CSV Export<br/><span style='font-size:13px;font-weight:400;color:#a7f3d0'>Screen Unblurs • Audit Checkmarks • In-Memory PDF Stream • 1-Click CSV Download</span>"]:::outputTier
+          <div class="worker-steps-row">
+            <div class="step-mini-card">
+              <div class="step-mini-title">1. Poppler 200 DPI</div>
+              <div class="step-mini-sub">4-thread parallel rasterizer converting PDF to 8-bit grayscale images.</div>
+            </div>
 
-    MATH -->|"Commit VERIFIED & Cache JSON"| POSTGRES
-    MATH -->|"Write-through"| REDIS
-    POSTGRES -.->|"Realtime Poll / Memory Stream"| OUTPUT
-    OUTPUT -.->|"Verified Results Render"| CLIENT
-        </pre>
+            <div class="step-mini-card">
+              <div class="step-mini-title">2. Tesseract 5 LSTM</div>
+              <div class="step-mini-sub">Single-pass neural OCR (<code>--oem 1</code>) extracting text tokens in ~2.2s.</div>
+            </div>
+
+            <div class="step-mini-card">
+              <div class="step-mini-title">3. Non-Bill Guardrail</div>
+              <div class="step-mini-sub">Filters manuals & register maps (EM6400) with clean NULL values.</div>
+            </div>
+
+            <div class="step-mini-card">
+              <div class="step-mini-title">4. Multi-DISCOM Parser</div>
+              <div class="step-mini-sub">Extracts APDCL TOD kWh, JVVNL amount, and GESCOM dates.</div>
+            </div>
+
+            <div class="step-mini-card" style="border-color: #10b981;">
+              <div class="step-mini-title" style="color: #34d399;">5. Tariff Math Audit</div>
+              <div class="step-mini-sub">Audits <code>(Curr - Prev) * MF == Units</code> and <code>0.0 ≤ PF ≤ 1.0</code>.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">
+          <span>Commit Verified Status & Populate Cache</span>
+          <span class="flow-arrow-icon">▼</span>
+        </div>
+
+        <!-- Tier 6: Final Output -->
+        <div class="node-block" style="border-color: #10b981; background: #063121;">
+          <div class="node-header">
+            <span class="node-title">🚀 Tier 5: Output & Delivery — Realtime Dashboard & CSV Export</span>
+            <span class="node-badge emerald">VERIFIED</span>
+          </div>
+          <div class="node-desc">
+            UI unblurs screen • Displays audited numbers and green verification badges • Streams PDF directly from PostgreSQL memory via <code>/api/v1/bills/{id}/file</code> • 1-Click Consolidated CSV Export
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- LLD User Query Tracing Diagram -->
-    <div id="panel-lld" class="diagram-panel">
-      <div class="diagram-card">
-        <pre class="mermaid">
-flowchart TD
-    %% Professional Color Classes for LLD
-    classDef startNode fill:#1e3a8a,stroke:#38bdf8,stroke-width:3px,color:#ffffff,font-weight:800,font-size:16px;
-    classDef processNode fill:#1e293b,stroke:#38bdf8,stroke-width:2.5px,color:#ffffff,font-weight:600,font-size:15px;
-    classDef decisionNode fill:#0f172a,stroke:#f59e0b,stroke-width:3px,color:#f59e0b,font-weight:800,font-size:15px;
-    classDef cacheHitNode fill:#064e3b,stroke:#10b981,stroke-width:3px,color:#ffffff,font-weight:700,font-size:14px;
-    classDef rejectNode fill:#4c0519,stroke:#f43f5e,stroke-width:3px,color:#ffffff,font-weight:700,font-size:14px;
-    classDef endNode fill:#064e3b,stroke:#10b981,stroke-width:3.5px,color:#ffffff,font-weight:800,font-size:16px;
+    <!-- TAB 2: Low-Level Design (LLD) User Query Tracing -->
+    <div id="tab-lld" class="diagram-panel">
+      <div class="flow-board">
+        <!-- Step 1 -->
+        <div class="node-block" style="border-color: #38bdf8;">
+          <div class="node-header">
+            <span class="node-title">1. User Uploads Utility Bill</span>
+            <span class="node-badge">USER ACTION</span>
+          </div>
+          <div class="node-desc">
+            User drops a PDF or image into the Next.js dropzone. Next.js triggers the screen-blurring loader shield and packages the file into a multipart <code>FormData</code> payload.
+          </div>
+          <div class="node-code">page.tsx ➔ handleFileUpload()</div>
+        </div>
 
-    S1(["1. User Drops Electricity Bill in Next.js Dropzone"]):::startNode
+        <div class="flow-arrow"><span class="flow-arrow-icon">▼</span></div>
 
-    S2["2. UI Triggers Loader Shield & Sends Multipart Stream<br/><span style='font-family:monospace;font-size:13px;color:#38bdf8'>POST /api/v1/bills/upload (FormData multipart stream)</span>"]:::processNode
+        <!-- Step 2 -->
+        <div class="node-block">
+          <div class="node-header">
+            <span class="node-title">2. Ingress & Cryptographic Fingerprinting</span>
+            <span class="node-badge">&lt; 1ms</span>
+          </div>
+          <div class="node-desc">
+            FastAPI receives the multipart stream into memory and computes the raw-byte SHA-256 fingerprint without touching the hard disk.
+          </div>
+          <div class="node-code">bills.py ➔ hashlib.sha256(raw_bytes).hexdigest()</div>
+        </div>
 
-    S3["3. FastAPI Receives Stream & Computes SHA-256 Digest<br/><span style='font-family:monospace;font-size:13px;color:#f59e0b'>hashlib.sha256(raw_bytes).hexdigest() [< 1ms latency]</span>"]:::processNode
+        <div class="flow-arrow"><span class="flow-arrow-icon">▼</span></div>
 
-    D1{"4. Redis Cache Check<br/>bill:sha256:{hash} exists?"}:::decisionNode
+        <!-- Step 3: Redis Decision -->
+        <div class="decision-block">
+          <div class="decision-title">3. Redis Deduplication Check</div>
+          <div class="decision-subtitle">Does Redis key bill:sha256:{hash} already exist?</div>
 
-    BRANCH_HIT["🟢 Cache Hit (&lt; 5ms)<br/><b>Return Cached Verified JSON</b><br/><span style='font-size:12.5px;color:#a7f3d0'>UI Toast: 'Already Parsed' & Opens Bill</span>"]:::cacheHitNode
+          <div class="branch-split">
+            <div class="branch-card hit">
+              <div class="branch-title">🟢 Branch A: Cache Hit (&lt; 5ms)</div>
+              Returns cached verified JSON immediately. Frontend displays toast notification <em>"Document already parsed and verified"</em> and opens the bill record.
+            </div>
 
-    S4["5. Zero-Disk PostgreSQL 17 BYTEA Storage<br/><span style='font-family:monospace;font-size:13px;color:#c084fc'>Bill(file_data=raw_bytes, status='PENDING') [< 10ms]</span>"]:::processNode
+            <div class="branch-card miss">
+              <div class="branch-title">🟣 Branch B: Cache Miss (&lt; 10ms)</div>
+              Saves raw document bytes directly to PostgreSQL 17 as a <code>BYTEA</code> binary blob (<code>status: PENDING</code>).
+            </div>
+          </div>
+        </div>
 
-    S5["6. Enqueue Bill ID into asyncio.Queue<br/><span style='font-family:monospace;font-size:13px;color:#38bdf8'>task_queue.enqueue(bill_id) ➔ HTTP 202 Accepted to UI</span>"]:::processNode
+        <div class="flow-arrow"><span class="flow-arrow-icon">▼</span></div>
 
-    S6["7. Poppler 200 DPI & Tesseract 5 Neural OCR<br/><span style='font-family:monospace;font-size:13px;color:#38bdf8'>4 Threads Grayscale ➔ Single-Pass Neural LSTM [~2.2s]</span>"]:::processNode
+        <!-- Step 4 -->
+        <div class="node-block">
+          <div class="node-header">
+            <span class="node-title">4. Asynchronous Queue Dispatch</span>
+            <span class="node-badge">&lt; 1ms</span>
+          </div>
+          <div class="node-desc">
+            Pushes <code>bill_id</code> into in-memory <code>asyncio.Queue</code> and immediately returns <code>HTTP 202 Accepted</code> to the browser to prevent gateway timeouts.
+          </div>
+          <div class="node-code">queue.py ➔ task_queue.enqueue(bill_id)</div>
+        </div>
 
-    D2{"8. Guardrail Check<br/>Is Valid Electricity Bill?"}:::decisionNode
+        <div class="flow-arrow"><span class="flow-arrow-icon">▼</span></div>
 
-    BRANCH_REJECT["🔴 Non-Bill Technical Document<br/><b>status = REJECTED_NON_BILL</b><br/><span style='font-size:12.5px;color:#fecdd3'>Store Clean NULLs in DB (e.g. EM6400 Manual)</span>"]:::rejectNode
+        <!-- Step 5 -->
+        <div class="node-block">
+          <div class="node-header">
+            <span class="node-title">5. Poppler 200 DPI & Tesseract 5 Neural OCR</span>
+            <span class="node-badge">~2.2s</span>
+          </div>
+          <div class="node-desc">
+            Worker pops task and reads <code>BYTEA</code> from DB. Poppler renders pages to 200 DPI grayscale across 4 threads. Tesseract 5 extracts text tokens in a single neural pass.
+          </div>
+          <div class="node-code">engine.py ➔ DocumentOCREngine.extract()</div>
+        </div>
 
-    S7["9. Multi-DISCOM Heuristic Regex Extraction<br/><span style='font-family:monospace;font-size:13px;color:#38bdf8'>APDCL TOD kWh, JVVNL amount, GESCOM dates & PF [< 15ms]</span>"]:::processNode
+        <div class="flow-arrow"><span class="flow-arrow-icon">▼</span></div>
 
-    S8["10. Deterministic Tariff Mathematical Audit<br/><span style='font-family:monospace;font-size:13px;color:#10b981'>Audit (Curr - Prev) * MF == Consumed & PF bounds [VERIFIED]</span>"]:::cacheHitNode
+        <!-- Step 6: Guardrail Decision -->
+        <div class="decision-block">
+          <div class="decision-title">6. Non-Bill Guardrail Classification</div>
+          <div class="decision-subtitle">Is this document a valid electricity bill?</div>
 
-    S9(["11. UI Unblurs Shield ➔ Displays Verified Metrics ➔ In-Memory PDF ➔ Export CSV"]):::endNode
+          <div class="branch-split">
+            <div class="branch-card reject">
+              <div class="branch-title">🔴 Non-Bill Technical Manual (e.g. EM6400)</div>
+              Marks status as <code>REJECTED_NON_BILL</code>. Leaves all numerical parameters cleanly as <code>null</code> / empty in DB and CSV export.
+            </div>
 
-    S1 --> S2
-    S2 --> S3
-    S3 --> D1
+            <div class="branch-card hit">
+              <div class="branch-title">🟢 Valid Electricity Bill</div>
+              Routes document to Multi-DISCOM regex heuristic parsers for APDCL, JVVNL, and GESCOM.
+            </div>
+          </div>
+        </div>
 
-    D1 -->|"YES (Cache Hit < 5ms)"| BRANCH_HIT
-    D1 -->|"NO (Cache Miss)"| S4
+        <div class="flow-arrow"><span class="flow-arrow-icon">▼</span></div>
 
-    S4 --> S5
-    S5 --> S6
-    S6 --> D2
+        <!-- Step 7 -->
+        <div class="node-block">
+          <div class="node-header">
+            <span class="node-title">7. Multi-DISCOM Heuristic Extraction</span>
+            <span class="node-badge">&lt; 15ms</span>
+          </div>
+          <div class="node-desc">
+            Extracts APDCL TOD registers (Solar, Peak, Normal), JVVNL Net Payable Amount preceding "Rupees Only" (₹585,217), and GESCOM dispatch numbers and dates.
+          </div>
+          <div class="node-code">universal_extractor.py ➔ extract_heuristic_fields()</div>
+        </div>
 
-    D2 -->|"NO (Technical Doc)"| BRANCH_REJECT
-    D2 -->|"YES (Valid Bill)"| S7
+        <div class="flow-arrow"><span class="flow-arrow-icon">▼</span></div>
 
-    S7 --> S8
-    S8 --> S9
-        </pre>
+        <!-- Step 8 -->
+        <div class="node-block" style="border-color: #10b981;">
+          <div class="node-header">
+            <span class="node-title" style="color: #34d399;">8. Deterministic Tariff Mathematical Audit</span>
+            <span class="node-badge emerald">&lt; 5ms</span>
+          </div>
+          <div class="node-desc">
+            Verifies meter consumption invariants <code>(Current - Previous) * Multiplier == Consumed Units</code>, checks Power Factor bounds (<code>0.0 ≤ PF ≤ 1.0</code>), and marks status as <code>VERIFIED</code>.
+          </div>
+          <div class="node-code" style="color: #34d399;">verification/engine.py ➔ MathVerificationEngine.verify()</div>
+        </div>
+
+        <div class="flow-arrow"><span class="flow-arrow-icon">▼</span></div>
+
+        <!-- Step 9 -->
+        <div class="node-block" style="border-color: #10b981; background: #072a1d;">
+          <div class="node-header">
+            <span class="node-title" style="color: #34d399;">9. Realtime UI Render & Consolidated CSV Export</span>
+            <span class="node-badge emerald">COMPLETE</span>
+          </div>
+          <div class="node-desc">
+            Frontend unblurs screen, displays audited values, loads embedded PDF streaming from database memory, and populates the 16-parameter CSV export table.
+          </div>
+          <div class="node-code" style="color: #a7f3d0;">page.tsx + bills.py ➔ export_all_bills_csv()</div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Initialize Mermaid with large readable typography
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'base',
-      themeVariables: {
-        darkMode: true,
-        background: '#0f172a',
-        primaryColor: '#1e3a8a',
-        primaryTextColor: '#ffffff',
-        primaryBorderColor: '#38bdf8',
-        lineColor: '#38bdf8',
-        secondaryColor: '#064e3b',
-        tertiaryColor: '#1e293b',
-        fontFamily: '"Inter", -apple-system, sans-serif',
-        fontSize: '16px'
-      }
-    });
-
-    function switchDiagram(type) {
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.diagram-panel').forEach(p => p.classList.remove('active'));
 
-      const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick').includes(type));
+      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
       if (activeBtn) activeBtn.classList.add('active');
 
-      const target = document.getElementById('panel-' + type);
+      const target = document.getElementById('tab-' + tabId);
       if (target) target.classList.add('active');
     }
   </script>
