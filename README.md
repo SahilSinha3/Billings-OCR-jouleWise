@@ -72,7 +72,7 @@ It replaces manual bill data entry with a deterministic OCR pipeline, database-b
    - **Individual Bill**: `GET /api/v1/bills/{id}/export/csv` exports a structured audit report including register breakdowns and line items.
 
 7. **Document Classification Guardrail**
-   Utility bill pipelines frequently receive non-bill attachments (register map sheets, meter datasheets, user manuals). The extractor runs a multi-signal keyword and pattern density classifier. Documents like Schneider EM6400 register maps are flagged and rejected immediately with `REJECTED_NON_BILL` before mathematical reconciliation runs.
+   Utility bill pipelines frequently receive non-bill attachments (register map sheets, meter datasheets, user manuals). The extractor runs a multi-signal keyword and pattern density classifier. Documents like Schneider EM6400 register maps are flagged and rejected immediately with `REJECTED_NON_BILL` before mathematical reconciliation runs. All fields for non-bill documents are stored cleanly as `null` without artificial placeholders.
 
 ---
 
@@ -84,17 +84,17 @@ All core subsystems—API endpoints, deterministic mathematical audit, multi-eng
 
 | Metric | Result | Status |
 | :--- | :--- | :---: |
-| **Total Test Cases Written** | **11** | ✅ |
-| **Tests Passed** | **11** | ✅ |
+| **Total Test Cases Written** | **12** | ✅ |
+| **Tests Passed** | **12** | ✅ |
 | **Tests Failed** | **0** | ✅ |
 | **Passing Percentage** | **100.0%** | 🟢 **100%** |
 | **Test Framework** | `pytest` 9.1.1 + `pytest-asyncio` | ✅ |
-| **Execution Duration** | **20.24s** *(includes neural OCR on multi-page 200 DPI scanned bills)* | ⚡ Fast |
+| **Execution Duration** | **29.51s** *(includes neural OCR on multi-page 200 DPI scanned bills)* | ⚡ Fast |
 
 ### Test Cases Breakdown
 
 | Test Suite / File | Test Case | Target Subsystem | Assertions & Audit Scope | Status | Pass Rate |
-| :--- | :--- | :--- | :--- | :---: | :---: |
+| :--- | :--- | :--- | :--- | :--- | :---: |
 | `tests/test_api.py` | `test_health_check_endpoint` | API Gateway | Validates `GET /api/v1/health`, queue driver, and Tesseract readiness | **PASSED** | 100% |
 | `tests/test_api.py` | `test_discoms_endpoint` | Configuration | Verifies DISCOM registry, tariff codes, and lookup keywords | **PASSED** | 100% |
 | `tests/test_api.py` | `test_settings_endpoints` | Settings Service | Tests live updating of Gemini API key, Ollama URL, and connection latency | **PASSED** | 100% |
@@ -104,7 +104,8 @@ All core subsystems—API endpoints, deterministic mathematical audit, multi-eng
 | `tests/test_math_verification.py` | `test_power_factor_invalid` | Audit Engine | Asserts `POWER_FACTOR_RANGE` critical failure when $\text{PF} > 1.0$ (unphysical) | **PASSED** | 100% |
 | `tests/test_parsers.py` | `test_extract_apdcl_scnel_bill` | TOD OCR Parser | Validates APDCL TOD sum ($306,161.46\text{ kWh}$), PF $99.00$, and bill metadata | **PASSED** | 100% |
 | `tests/test_parsers.py` | `test_extract_apdcl_bill` | OCR Parser | Validates APDCL HT-II industrial bill (`SCL`), consumer ID, and net due | **PASSED** | 100% |
-| `tests/test_parsers.py` | `test_extract_scanned_gescom_bill` | Neural Tesseract | Validates 200 DPI neural OCR recovery on degraded dot-matrix scanned bill | **PASSED** | 100% |
+| `tests/test_parsers.py` | `test_extract_jvvnl_bill` | OCR & Finance Parser | Validates JVVNL Net Payable (`₹585,217`), multi-line PF (`0.990`), and 3-date block | **PASSED** | 100% |
+| `tests/test_parsers.py` | `test_extract_scanned_gescom_bill` | Neural Tesseract | Validates GESCOM dot-matrix bill, dispatch reference, PF $0.94$, and net amount | **PASSED** | 100% |
 | `tests/test_parsers.py` | `test_non_bill_guardrail_rejection` | Guardrails | Confirms rejection of Schneider EM6400 datasheet (`REJECTED_NON_BILL`) | **PASSED** | 100% |
 
 ### Running the Test Suite
