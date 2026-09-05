@@ -704,33 +704,35 @@ export default function JouleWiseDashboard() {
                   <div className={styles.formPane}>
                     {/* Header & Export Single Bill CSV */}
                     <div className={styles.formHeader}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div className={styles.formHeaderTopBar}>
+                        <div className={styles.discomInfoWrapper}>
                           <span className={styles.badge}>{selectedBill.discom_code}</span>
-                          <h3 className={styles.formHeaderConsumer}>{selectedBill.consumer_name}</h3>
-                        </div>
-                        <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
-                          {selectedBill.discom_name}
-                        </p>
-                      </div>
-
-                      <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                        <span style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "ui-monospace, monospace" }}>
-                          Net Amount Due
-                        </span>
-                        <div className={styles.formHeaderAmount}>
-                          ₹{(selectedBill.net_amount_due || 0).toLocaleString("en-IN")}
+                          <span className={styles.discomFullName}>{selectedBill.discom_name}</span>
                         </div>
                         <a
                           href={`${API_BASE_URL}/bills/${selectedBill.id}/export/csv`}
                           download
                           title="Export this bill as a detailed CSV file"
                           className={`${styles.btn} ${styles.btnOutline}`}
-                          style={{ padding: "2px 8px", fontSize: 11 }}
+                          style={{ padding: "4px 10px", fontSize: 11 }}
                         >
                           <Download style={{ width: 12, height: 12 }} />
                           <span>Export CSV</span>
                         </a>
+                      </div>
+
+                      <div className={styles.formHeaderMainRow}>
+                        <div className={styles.consumerMetaCol}>
+                          <span className={styles.consumerSubLabel}>Consumer / Billed Entity</span>
+                          <h3 className={styles.formHeaderConsumer}>{selectedBill.consumer_name}</h3>
+                        </div>
+
+                        <div className={styles.amountMetaCol}>
+                          <span className={styles.amountSubLabel}>Net Amount Due</span>
+                          <div className={styles.formHeaderAmount}>
+                            ₹{(selectedBill.net_amount_due || 0).toLocaleString("en-IN")}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
